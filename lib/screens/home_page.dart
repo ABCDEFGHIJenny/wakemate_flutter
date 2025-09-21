@@ -134,6 +134,7 @@ class _HomePageState extends State<HomePage> {
                           builder:
                               (context) => CaffeineRecommendationPage(
                                 userId: widget.userId,
+                                selectedDate: _selectedDate,
                               ),
                         ),
                       );

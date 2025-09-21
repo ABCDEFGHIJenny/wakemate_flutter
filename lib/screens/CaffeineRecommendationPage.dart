@@ -4,13 +4,18 @@ import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:io';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ 1. 引入套件
+import 'package:shared_preferences/shared_preferences.dart';
 import 'CaffeineHistory.dart';
 
 class CaffeineRecommendationPage extends StatefulWidget {
-  final String userId; // ✅ 從 HomePage 傳入
+  final String userId;
+  final DateTime selectedDate; // ✅ 從 HomePage 傳入
 
-  const CaffeineRecommendationPage({super.key, required this.userId});
+  const CaffeineRecommendationPage({
+    super.key,
+    required this.userId,
+    required this.selectedDate,
+  });
 
   @override
   State<CaffeineRecommendationPage> createState() =>
@@ -24,11 +29,42 @@ class _CaffeineRecommendationPageState
   final TextEditingController drinkNameController = TextEditingController();
 
   // 時間狀態
-  DateTime _targetStart = DateTime.now();
-  DateTime _targetEnd = DateTime.now().add(const Duration(hours: 8));
-  DateTime _sleepStart = DateTime.now().add(const Duration(hours: 23));
-  DateTime _sleepEnd = DateTime.now().add(const Duration(hours: 31));
-  DateTime _caffeineIntakeTime = DateTime.now();
+  late DateTime _targetStart;
+  late DateTime _targetEnd;
+  late DateTime _sleepStart;
+  late DateTime _sleepEnd;
+  late DateTime _caffeineIntakeTime;
+
+  @override
+  void initState() {
+    super.initState();
+    final selected = widget.selectedDate;
+
+    // ✅ 根據選擇的日期來初始化
+    _targetStart = DateTime(
+      selected.year,
+      selected.month,
+      selected.day,
+      8,
+      0,
+    ); // 08:00
+    _targetEnd = _targetStart.add(const Duration(hours: 8)); // 16:00
+    _sleepStart = DateTime(
+      selected.year,
+      selected.month,
+      selected.day,
+      23,
+      0,
+    ); // 23:00
+    _sleepEnd = _sleepStart.add(const Duration(hours: 8)); // 翌日 07:00
+    _caffeineIntakeTime = DateTime(
+      selected.year,
+      selected.month,
+      selected.day,
+      10,
+      0,
+    ); // 10:00
+  }
 
   String _formatDate(DateTime dateTime) {
     return DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(dateTime.toUtc());
@@ -68,7 +104,7 @@ class _CaffeineRecommendationPageState
   }) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: widget.selectedDate, // ✅ 預設跳到 HomePage 選的日期
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
@@ -76,7 +112,7 @@ class _CaffeineRecommendationPageState
 
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(DateTime.now()),
+      initialTime: TimeOfDay.fromDateTime(widget.selectedDate), // ✅ 同樣基於選的日期
     );
     if (pickedTime != null) {
       final newDateTime = DateTime(
@@ -91,7 +127,6 @@ class _CaffeineRecommendationPageState
   }
 
   Future<void> sendAllDataAndFetchRecommendation() async {
-    // 驗證輸入
     if (caffeineController.text.isEmpty || drinkNameController.text.isEmpty) {
       _showSnackBar("請填寫所有咖啡因資料");
       return;
@@ -168,7 +203,6 @@ class _CaffeineRecommendationPageState
         final data = json.decode(recommendationResponse.body);
         _showSnackBar("計算成功！", color: Colors.green);
 
-        // ✅ 2. 在導航前將資料存入 shared_preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
           'caffeine_recommendations',

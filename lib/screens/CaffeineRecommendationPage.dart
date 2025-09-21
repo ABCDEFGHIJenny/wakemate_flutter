@@ -9,7 +9,7 @@ import 'CaffeineHistory.dart';
 
 class CaffeineRecommendationPage extends StatefulWidget {
   final String userId;
-  final DateTime selectedDate; // ✅ 從 HomePage 傳入
+  final DateTime selectedDate;
 
   const CaffeineRecommendationPage({
     super.key,
@@ -40,37 +40,30 @@ class _CaffeineRecommendationPageState
     super.initState();
     final selected = widget.selectedDate;
 
-    // ✅ 根據選擇的日期來初始化
-    _targetStart = DateTime(
-      selected.year,
-      selected.month,
-      selected.day,
-      8,
-      0,
-    ); // 08:00
-    _targetEnd = _targetStart.add(const Duration(hours: 8)); // 16:00
-    _sleepStart = DateTime(
-      selected.year,
-      selected.month,
-      selected.day,
-      23,
-      0,
-    ); // 23:00
-    _sleepEnd = _sleepStart.add(const Duration(hours: 8)); // 翌日 07:00
+    _targetStart = DateTime(selected.year, selected.month, selected.day, 8, 0);
+    _targetEnd = _targetStart.add(const Duration(hours: 8));
+    _sleepStart = DateTime(selected.year, selected.month, selected.day, 23, 0);
+    _sleepEnd = _sleepStart.add(const Duration(hours: 8));
     _caffeineIntakeTime = DateTime(
       selected.year,
       selected.month,
       selected.day,
       10,
       0,
-    ); // 10:00
+    );
+  }
+
+  @override
+  void dispose() {
+    caffeineController.dispose();
+    drinkNameController.dispose();
+    super.dispose();
   }
 
   String _formatDate(DateTime dateTime) {
     return DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(dateTime.toUtc());
   }
 
-  // 新增 SnackBar 函數
   void _showSnackBar(String message, {Color color = Colors.red}) {
     final snackBar = SnackBar(
       content: Row(
@@ -100,11 +93,12 @@ class _CaffeineRecommendationPageState
 
   Future<void> _selectDateAndTime(
     BuildContext context, {
+    required DateTime initialDate,
     required ValueChanged<DateTime> onDateTimeSelected,
   }) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: widget.selectedDate, // ✅ 預設跳到 HomePage 選的日期
+      initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
@@ -112,7 +106,7 @@ class _CaffeineRecommendationPageState
 
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(widget.selectedDate), // ✅ 同樣基於選的日期
+      initialTime: TimeOfDay.fromDateTime(initialDate),
     );
     if (pickedTime != null) {
       final newDateTime = DateTime(
@@ -126,6 +120,61 @@ class _CaffeineRecommendationPageState
     }
   }
 
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "確認您的資料",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), // 標題字體
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDialogRow("咖啡因含量", "${caffeineController.text} 毫克"),
+              _buildDialogRow("飲料名稱", drinkNameController.text),
+              _buildDialogRow(
+                "攝取時間",
+                DateFormat("yyyy/MM/dd HH:mm").format(_caffeineIntakeTime),
+              ),
+              const Divider(height: 20),
+              _buildDialogRow(
+                "目標清醒時間",
+                "${DateFormat("MM/dd HH:mm").format(_targetStart)} - ${DateFormat("MM/dd HH:mm").format(_targetEnd)}",
+              ),
+              _buildDialogRow(
+                "睡眠時間",
+                "${DateFormat("MM/dd HH:mm").format(_sleepStart)} - ${DateFormat("MM/dd HH:mm").format(_sleepEnd)}",
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("取消"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                sendAllDataAndFetchRecommendation();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("確認並送出"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> sendAllDataAndFetchRecommendation() async {
     if (caffeineController.text.isEmpty || drinkNameController.text.isEmpty) {
       _showSnackBar("請填寫所有咖啡因資料");
@@ -137,43 +186,34 @@ class _CaffeineRecommendationPageState
     try {
       final headers = {"Content-Type": "application/json"};
 
-      // 1. 發送睡眠資料
       final sleepData = {
         "user_id": userId,
         "sleep_start_time": _formatDate(_sleepStart),
         "sleep_end_time": _formatDate(_sleepEnd),
       };
       const sleepUrl = "https://wakemate-api-4-0.onrender.com/users_sleep/";
-      final sleepResponse = await http.post(
-        Uri.parse(sleepUrl),
-        headers: headers,
-        body: json.encode(sleepData),
-      );
+      await http
+          .post(
+            Uri.parse(sleepUrl),
+            headers: headers,
+            body: json.encode(sleepData),
+          )
+          .timeout(const Duration(seconds: 15));
 
-      if (sleepResponse.statusCode != 200) {
-        _showSnackBar("發送睡眠資料失敗: ${sleepResponse.statusCode}");
-        return;
-      }
-
-      // 2. 發送清醒資料
       final wakeData = {
         "user_id": userId,
         "target_start_time": _formatDate(_targetStart),
         "target_end_time": _formatDate(_targetEnd),
       };
       const wakeUrl = "https://wakemate-api-4-0.onrender.com/users_wake/";
-      final wakeResponse = await http.post(
-        Uri.parse(wakeUrl),
-        headers: headers,
-        body: json.encode(wakeData),
-      );
+      await http
+          .post(
+            Uri.parse(wakeUrl),
+            headers: headers,
+            body: json.encode(wakeData),
+          )
+          .timeout(const Duration(seconds: 15));
 
-      if (wakeResponse.statusCode != 200) {
-        _showSnackBar("發送清醒資料失敗: ${wakeResponse.statusCode}");
-        return;
-      }
-
-      // 3. 發送咖啡因資料
       final intakeData = {
         'user_id': userId,
         'caffeine_amount': int.tryParse(caffeineController.text) ?? 0,
@@ -181,23 +221,19 @@ class _CaffeineRecommendationPageState
         'taking_timestamp': _formatDate(_caffeineIntakeTime),
       };
       const intakeUrl = "https://wakemate-api-4-0.onrender.com/users_intake/";
-      final intakeResponse = await http.post(
-        Uri.parse(intakeUrl),
-        headers: headers,
-        body: json.encode(intakeData),
-      );
+      await http
+          .post(
+            Uri.parse(intakeUrl),
+            headers: headers,
+            body: json.encode(intakeData),
+          )
+          .timeout(const Duration(seconds: 15));
 
-      if (intakeResponse.statusCode != 200) {
-        _showSnackBar("發送咖啡因資料失敗: ${intakeResponse.statusCode}");
-        return;
-      }
-
-      // 4. 取得推薦結果
       final recommendationUrl =
           "https://wakemate-api-4-0.onrender.com/recommendations/?user_id=$userId";
-      final recommendationResponse = await http.get(
-        Uri.parse(recommendationUrl),
-      );
+      final recommendationResponse = await http
+          .get(Uri.parse(recommendationUrl))
+          .timeout(const Duration(seconds: 15));
 
       if (recommendationResponse.statusCode == 200) {
         final data = json.decode(recommendationResponse.body);
@@ -225,62 +261,86 @@ class _CaffeineRecommendationPageState
         _showSnackBar("觸發計算失敗: ${recommendationResponse.statusCode}");
       }
     } on TimeoutException {
-      _showSnackBar("錯誤: 請求逾時");
-    } on SocketException catch (e) {
-      _showSnackBar("網路錯誤: $e");
+      _showSnackBar("錯誤: 請求逾時，請檢查您的網路連線。");
+    } on SocketException {
+      _showSnackBar("網路連線錯誤，請檢查您的網路。");
     } catch (e) {
-      _showSnackBar("未知例外錯誤: $e");
+      _showSnackBar("發生未知錯誤: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("咖啡因建議")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildSectionTitle("睡眠與清醒時間"),
-              _buildTimeField("目標清醒開始時間", _targetStart, (newDate) {
-                setState(() => _targetStart = newDate);
-              }),
-              _buildTimeField("目標清醒結束時間", _targetEnd, (newDate) {
-                setState(() => _targetEnd = newDate);
-              }),
-              _buildTimeField("實際睡眠開始時間", _sleepStart, (newDate) {
-                setState(() => _sleepStart = newDate);
-              }),
-              _buildTimeField("實際睡眠結束時間", _sleepEnd, (newDate) {
-                setState(() => _sleepEnd = newDate);
-              }),
-              const SizedBox(height: 20),
-              _buildSectionTitle("咖啡因攝取資料"),
-              _buildTextField(
-                "咖啡因含量（毫克）",
-                caffeineController,
-                Icons.local_cafe,
-                TextInputType.number,
-              ),
-              _buildTextField("飲料名稱", drinkNameController, Icons.local_drink),
-              _buildTimeField("攝取時間", _caffeineIntakeTime, (newDate) {
-                setState(() => _caffeineIntakeTime = newDate);
-              }),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: sendAllDataAndFetchRecommendation,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+      appBar: AppBar(
+        title: const Text(
+          "咖啡因建議",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildSectionTitle("時間排程"),
+            _buildTimeCard(
+              "目標清醒時間",
+              _targetStart,
+              _targetEnd,
+              onStartSelected:
+                  (newDate) => setState(() => _targetStart = newDate),
+              onEndSelected: (newDate) => setState(() => _targetEnd = newDate),
+            ),
+            _buildTimeCard(
+              "實際睡眠時間",
+              _sleepStart,
+              _sleepEnd,
+              onStartSelected:
+                  (newDate) => setState(() => _sleepStart = newDate),
+              onEndSelected: (newDate) => setState(() => _sleepEnd = newDate),
+            ),
+            const SizedBox(height: 20),
+            _buildSectionTitle("咖啡因攝取資料"),
+            _buildTextField(
+              "咖啡因含量（毫克）",
+              "例如：100",
+              caffeineController,
+              Icons.local_cafe_outlined,
+              TextInputType.number,
+            ),
+            _buildTextField(
+              "飲料名稱",
+              "例如：美式咖啡",
+              drinkNameController,
+              Icons.local_drink_outlined,
+            ),
+            _buildTimeField(
+              "攝取時間",
+              _caffeineIntakeTime,
+              (newDate) => setState(() => _caffeineIntakeTime = newDate),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: _showConfirmationDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text("發送資料並取得建議"),
+                elevation: 5,
               ),
-            ],
-          ),
+              child: const Text(
+                "計算並取得咖啡因建議",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -288,10 +348,45 @@ class _CaffeineRecommendationPageState
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[800],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    String hint,
+    TextEditingController controller,
+    IconData icon, [
+    TextInputType keyboardType = TextInputType.text,
+  ]) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey[100],
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 12,
+          ),
+        ),
       ),
     );
   }
@@ -301,44 +396,118 @@ class _CaffeineRecommendationPageState
     DateTime time,
     ValueChanged<DateTime> onDateTimeSelected,
   ) {
-    final controller = TextEditingController(
-      text: DateFormat("yyyy-MM-dd HH:mm").format(time),
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        controller: controller,
-        readOnly: true,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          labelText: label,
-          suffixIcon: const Icon(Icons.calendar_today),
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: InkWell(
         onTap:
             () => _selectDateAndTime(
               context,
+              initialDate: time,
               onDateTimeSelected: onDateTimeSelected,
             ),
+        borderRadius: BorderRadius.circular(12),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: const Icon(Icons.access_time, color: Colors.blueAccent),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.grey[100],
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 12,
+            ),
+          ),
+          child: Text(
+            DateFormat("yyyy/MM/dd HH:mm").format(time),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller,
-    IconData icon, [
-    TextInputType keyboardType = TextInputType.text,
-  ]) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          labelText: label,
-          prefixIcon: Icon(icon),
+  Widget _buildTimeCard(
+    String title,
+    DateTime start,
+    DateTime end, {
+    required ValueChanged<DateTime> onStartSelected,
+    required ValueChanged<DateTime> onEndSelected,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSmallTimeButton("開始", start, onStartSelected),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildSmallTimeButton("結束", end, onEndSelected),
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSmallTimeButton(
+    String label,
+    DateTime time,
+    ValueChanged<DateTime> onDateTimeSelected,
+  ) {
+    return OutlinedButton(
+      onPressed:
+          () => _selectDateAndTime(
+            context,
+            initialDate: time,
+            onDateTimeSelected: onDateTimeSelected,
+          ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.blueAccent,
+        side: const BorderSide(color: Colors.blueAccent),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+      child: Column(
+        children: [
+          Text(label),
+          const SizedBox(height: 4),
+          Text(
+            DateFormat("HH:mm").format(time),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("$label：", style: const TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(value)),
+        ],
       ),
     );
   }

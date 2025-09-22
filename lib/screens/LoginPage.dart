@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'home_page.dart';
-import 'RegisterPage.dart'; // 導入 RegisterPage
+import 'RegisterPage.dart';
 import 'package:intl/intl.dart';
 
 class LoginPage extends StatefulWidget {
@@ -13,7 +13,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // 保留所有文字輸入框控制器
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -21,23 +20,25 @@ class _LoginPageState extends State<LoginPage> {
   final String baseUrl = 'https://wakemate-api-4-0.onrender.com';
   bool isLoading = false;
 
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _backgroundColor = const Color(0xFFF0F2F5); // 淺灰色背景
+  final Color _cardColor = Colors.white; // 卡片白色背景
+  final Color _errorColor = const Color(0xFFE53935); // 紅色
+
   @override
   void initState() {
     super.initState();
 
-    // 預設測試帳號
     nameController.text = "1414";
     emailController.text = "1414@gmail.com";
-    passwordController.text = "1414"; // 改成實際密碼
+    passwordController.text = "1414";
   }
 
-  // 處理使用者登入的非同步函數
   Future<void> _loginUser() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    // 檢查所有欄位是否都已輸入
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -49,24 +50,20 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final headers = {'Content-Type': 'application/json'};
-      // 將名稱、Email 和密碼都包含在請求主體中
       final body = jsonEncode({
         "name": name,
         "email": email,
         "password": password,
       });
 
-      // 修正：這裡應該是登入的 API 路徑，而不是註冊路徑
       final res = await http.post(
         Uri.parse('$baseUrl/login/'),
         headers: headers,
         body: body,
       );
 
-      // --- 偵錯訊息 ---
       print('Response Status Code: ${res.statusCode}');
       print('Response Body: ${res.body}');
-      // ----------------
 
       if (!mounted) return;
 
@@ -105,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
               builder:
                   (context) => HomePage(
                     userId: uuidFromServer,
-                    userName: nameController.text.trim(), // 傳入名稱
+                    userName: nameController.text.trim(),
                     email: emailController.text.trim(),
                   ),
             ),
@@ -123,19 +120,28 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         try {
           final errorMsg = jsonDecode(res.body)['error'] ?? "伺服器發生未知錯誤";
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("❌ 登入失敗：$errorMsg")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("❌ 登入失敗：$errorMsg"),
+              backgroundColor: _errorColor,
+            ),
+          );
         } on FormatException {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("❌ 登入失敗：伺服器回傳了無效的回應")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("❌ 登入失敗：伺服器回傳了無效的回應"),
+              backgroundColor: _errorColor,
+            ),
+          );
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("錯誤：無法連線到伺服器")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("錯誤：無法連線到伺服器"),
+          backgroundColor: _errorColor,
+        ),
+      );
     } finally {
       setState(() => isLoading = false);
     }
@@ -144,11 +150,21 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("登入")),
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: Text(
+          "使用者登入",
+          style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(24.0),
           child: Card(
+            color: _cardColor,
             elevation: 8.0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20.0),
@@ -161,43 +177,73 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     "登入您的帳號",
                     style: TextStyle(
-                      fontSize: 24.0,
+                      fontSize: 28.0,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
+                      color: _primaryColor,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
+                  // 名稱輸入框
                   TextField(
                     controller: nameController,
                     decoration: InputDecoration(
                       labelText: "名稱",
+                      labelStyle: TextStyle(color: _primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(color: _primaryColor),
                       ),
-                      prefixIcon: const Icon(Icons.person),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(
+                          color: _primaryColor,
+                          width: 2.0,
+                        ),
+                      ),
+                      prefixIcon: Icon(Icons.person, color: _primaryColor),
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Email 輸入框
                   TextField(
                     controller: emailController,
                     decoration: InputDecoration(
                       labelText: "Email",
+                      labelStyle: TextStyle(color: _primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(color: _primaryColor),
                       ),
-                      prefixIcon: const Icon(Icons.email),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(
+                          color: _primaryColor,
+                          width: 2.0,
+                        ),
+                      ),
+                      prefixIcon: Icon(Icons.email, color: _primaryColor),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 16),
+                  // 密碼輸入框
                   TextField(
                     controller: passwordController,
                     decoration: InputDecoration(
                       labelText: "密碼",
+                      labelStyle: TextStyle(color: _primaryColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(color: _primaryColor),
                       ),
-                      prefixIcon: const Icon(Icons.lock),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(
+                          color: _primaryColor,
+                          width: 2.0,
+                        ),
+                      ),
+                      prefixIcon: Icon(Icons.lock, color: _primaryColor),
                     ),
                     obscureText: true,
                   ),
@@ -208,26 +254,36 @@ class _LoginPageState extends State<LoginPage> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : _loginUser,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryColor,
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
+                        textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: Text(
-                        isLoading ? "登入中..." : "登入",
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                      child: Text(isLoading ? "登入中..." : "登入"),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegisterPage(),
-                        ),
-                      );
-                    },
+                    onPressed:
+                        isLoading
+                            ? null
+                            : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RegisterPage(),
+                                ),
+                              );
+                            },
+                    style: TextButton.styleFrom(
+                      foregroundColor: _primaryColor,
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     child: const Text("還沒有帳號？點此註冊"),
                   ),
                 ],

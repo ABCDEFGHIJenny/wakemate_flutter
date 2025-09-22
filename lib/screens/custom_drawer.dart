@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/screens/LoginPage.dart';
 import 'package:my_app/screens/alertness_test.dart';
-import 'package:my_app/screens/personalSettingsPage.dart'; //
+import 'package:my_app/screens/personalSettingsPage.dart';
 
 class CustomDrawer extends StatelessWidget {
   final String userId;
@@ -17,30 +17,37 @@ class CustomDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 統一的顏色定義
+    const Color primaryColor = Color(0xFF1F3D5B); // 深藍色
+    const Color accentColor = Color(0xFF5E91B3); // 較淺的藍色
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          DrawerHeader(
+          // 重新設計的 DrawerHeader
+          Container(
+            padding: const EdgeInsets.only(top: 60, bottom: 20, left: 20),
             decoration: const BoxDecoration(
-              color: Color.fromARGB(255, 14, 70, 117),
+              color: primaryColor,
+              borderRadius: BorderRadius.only(bottomRight: Radius.circular(0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Text(
-                  '帳號資料',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const CircleAvatar(
+                  backgroundColor: accentColor,
+                  radius: 30,
+                  child: Icon(Icons.person, size: 40, color: Colors.white),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
                   userName,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -51,10 +58,13 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
 
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text("個人身體數據"),
+          // 選項列表
+          _buildDrawerItem(
+            context,
+            icon: Icons.settings_outlined,
+            title: "個人身體數據",
             onTap: () {
+              Navigator.pop(context); // 關閉 Drawer
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -63,11 +73,12 @@ class CustomDrawer extends StatelessWidget {
               );
             },
           ),
-
-          ListTile(
-            leading: const Icon(Icons.bolt),
-            title: const Text('清醒度測試'),
+          _buildDrawerItem(
+            context,
+            icon: Icons.bolt_outlined,
+            title: "清醒度測試",
             onTap: () {
+              Navigator.pop(context); // 關閉 Drawer
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -76,10 +87,11 @@ class CustomDrawer extends StatelessWidget {
               );
             },
           ),
-
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('登出'),
+          const Divider(),
+          _buildDrawerItem(
+            context,
+            icon: Icons.logout,
+            title: "登出",
             onTap: () {
               Navigator.pushAndRemoveUntil(
                 context,
@@ -90,6 +102,26 @@ class CustomDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // 輔助函式，用於建立統一風格的列表項目
+  Widget _buildDrawerItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    // 統一的顏色定義
+    const Color primaryColor = Color(0xFF1F3D5B);
+
+    return ListTile(
+      leading: Icon(icon, color: primaryColor, size: 26),
+      title: Text(
+        title,
+        style: const TextStyle(color: primaryColor, fontSize: 16),
+      ),
+      onTap: onTap,
     );
   }
 }

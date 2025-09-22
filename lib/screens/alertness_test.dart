@@ -14,10 +14,17 @@ class AlertnessTestPage extends StatefulWidget {
 }
 
 class _AlertnessTestPageState extends State<AlertnessTestPage> {
+  // 定義顏色和樣式
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _successColor = const Color(0xFF32C669); // 綠色
+  final Color _errorColor = const Color(0xFFE53935); // 紅色
+  final Color _backgroundColor = const Color(0xFFF0F2F5); // 淺灰色背景
+  final Color _boxDefaultColor = const Color(0xFF5E91B3); // 淺藍色
+
   Timer? _timer;
   bool _isWaiting = true;
   bool _testStarted = false;
-  Color _boxColor = const Color(0xFF67B7F9); // 簡潔的藍色
+  Color _boxColor = const Color(0xFF5E91B3);
   String _resultMessage = "點擊開始";
   DateTime? _startTime;
   final List<Duration> _reactionTimes = [];
@@ -51,7 +58,7 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
     setState(() {
       _isWaiting = true;
       _testStarted = true;
-      _boxColor = const Color(0xFF67B7F9);
+      _boxColor = _boxDefaultColor;
       _isError = false;
     });
 
@@ -60,14 +67,14 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
       if (!mounted) return;
       setState(() {
         _isWaiting = false;
-        _boxColor = const Color(0xFF32C669); // 簡潔的綠色
+        _boxColor = _successColor;
         _startTime = DateTime.now();
         _resultMessage = "請點擊！";
       });
 
       _timer = Timer(const Duration(milliseconds: 2000), () {
         if (!mounted) return;
-        if (_boxColor == const Color(0xFF32C669)) {
+        if (_boxColor == _successColor) {
           _lapses++;
           _runTestSequence();
         }
@@ -82,7 +89,7 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
       _timer?.cancel();
       setState(() {
         _testStarted = false;
-        _boxColor = const Color(0xFFE53935); // 簡潔的紅色
+        _boxColor = _errorColor;
         _isError = true;
         _resultMessage = "❌ 點太快了！重來";
         _falseStarts++;
@@ -101,7 +108,7 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
 
       setState(() {
         _testStarted = false;
-        _boxColor = const Color(0xFF67B7F9);
+        _boxColor = _boxDefaultColor;
         _isError = false;
         _resultMessage = "第$_currentTrial次: ${reaction.inMilliseconds} 毫秒";
       });
@@ -117,7 +124,7 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
   void _testCompleted() {
     setState(() {
       _testStarted = false;
-      _boxColor = const Color(0xFF67B7F9);
+      _boxColor = _boxDefaultColor;
     });
 
     final avgTime = _averageReactionTime();
@@ -161,16 +168,18 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
       builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
+          backgroundColor: _backgroundColor,
+          title: Text(
             "測試結果",
             textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor),
           ),
           content: SingleChildScrollView(
             child: ListBody(
               children: [
+                const SizedBox(height: 10),
                 const Text(
                   "每次反應時間：",
                   style: TextStyle(
@@ -188,21 +197,21 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
                 }).toList(),
                 const Divider(
                   height: 30,
-                  thickness: 1,
-                  color: Color(0xFFEEEEEE),
+                  thickness: 1.5,
+                  color: Color(0xFFDDDDDD),
                 ),
                 Text(
                   "平均反應時間：${avgTime.toStringAsFixed(2)} 毫秒",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Color(0xFF42A5F5),
+                    fontSize: 20,
+                    color: _primaryColor,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "選擇您覺得的清醒程度:",
+                  "選擇您覺得的清醒程度 (KSS):",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF555555),
@@ -210,30 +219,47 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
                 ),
                 StatefulBuilder(
                   builder: (context, setInnerState) {
-                    return DropdownButton<int>(
-                      value: _selectedKssLevel,
-                      isExpanded: true,
-                      hint: const Text("選擇 KSS 分數"),
-                      items:
-                          kssLevels.map((int level) {
-                            return DropdownMenuItem<int>(
-                              value: level,
-                              child: Text(
-                                "$level - ${_getKssDescription(level)}",
-                              ),
-                            );
-                          }).toList(),
-                      onChanged: (int? newValue) {
-                        setInnerState(() {
-                          _selectedKssLevel = newValue;
-                        });
-                      },
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _primaryColor.withOpacity(0.5),
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: _selectedKssLevel,
+                          isExpanded: true,
+                          hint: const Text("選擇 KSS 分數"),
+                          items:
+                              kssLevels.map((int level) {
+                                return DropdownMenuItem<int>(
+                                  value: level,
+                                  child: Text(
+                                    "$level - ${_getKssDescription(level)}",
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                          onChanged: (int? newValue) {
+                            setInnerState(() {
+                              _selectedKssLevel = newValue;
+                            });
+                          },
+                          dropdownColor: Colors.white,
+                        ),
+                      ),
                     );
                   },
                 ),
               ],
             ),
           ),
+          actionsAlignment: MainAxisAlignment.spaceAround,
           actions: [
             TextButton(
               onPressed: () {
@@ -247,11 +273,12 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
                 _startTest();
               },
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF42A5F5),
+                foregroundColor: _primaryColor,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
               ),
               child: const Text("再測一次"),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 _sendAverageReactionTime(
                   avgTime,
@@ -261,10 +288,14 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
                 );
                 Navigator.of(context).pop();
               },
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF42A5F5),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: const Text("關閉"),
+              child: const Text("完成並關閉"),
             ),
           ],
         );
@@ -304,14 +335,33 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
       );
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        print('平均反應時間和 KSS 等級已成功送出');
-        print('伺服器回應: ${res.body}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('數據已成功送出！'),
+              backgroundColor: Color(0xFF28A745),
+            ),
+          );
+        }
       } else {
-        print('送出失敗，狀態碼：${res.statusCode}');
-        print('錯誤訊息：${res.body}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('送出失敗，狀態碼：${res.statusCode}'),
+              backgroundColor: _errorColor,
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('送出錯誤：$e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('網路錯誤，無法送出數據'),
+            backgroundColor: Color(0xFFDC3545),
+          ),
+        );
+      }
     }
   }
 
@@ -324,93 +374,90 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "清醒度測試",
           style: TextStyle(
-            color: Color(0xFF333333),
+            color: _primaryColor,
             fontWeight: FontWeight.bold,
+            fontSize: 22,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: _primaryColor),
       ),
-      body: Container(
-        color: Colors.white,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  _resultMessage,
-                  style: TextStyle(
-                    fontSize: 28,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _resultMessage,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: _isError ? _errorColor : _primaryColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: _boxTapped,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    color: _boxColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _boxColor.withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child:
+                      !_testStarted
+                          ? const Text(
+                            "點擊此處",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                          : const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: !_testStarted ? _startTest : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 50,
+                    vertical: 18,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color:
-                        _isError
-                            ? const Color(0xFFE53935)
-                            : const Color(0xFF333333),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-                GestureDetector(
-                  onTap: _boxTapped,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: _boxColor,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _boxColor.withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child:
-                        !_testStarted
-                            ? const Text(
-                              "點擊此處",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                            : const SizedBox.shrink(),
                   ),
                 ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: !_testStarted ? _startTest : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF42A5F5),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 15,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  child: const Text("開始測試"),
-                ),
-              ],
-            ),
+                child: const Text("開始測試"),
+              ),
+            ],
           ),
         ),
       ),

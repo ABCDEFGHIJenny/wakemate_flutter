@@ -129,7 +129,10 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
       );
 
       if (sleepRes.statusCode == 200 && intakeRes.statusCode == 200) {
-        _showSnackBar("資料儲存成功！", color: Colors.green);
+        _showSnackBar(
+          "資料儲存成功！",
+          color: const Color.fromARGB(255, 59, 140, 101),
+        );
         if (mounted) {
           Navigator.of(context).pop();
         }
@@ -225,7 +228,7 @@ class _AddRecordDialogState extends State<AddRecordDialog> {
         ElevatedButton(
           onPressed: _submitData,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 72, 203, 140),
+            backgroundColor: const Color.fromARGB(255, 59, 140, 101),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),

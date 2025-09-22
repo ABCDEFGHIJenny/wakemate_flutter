@@ -27,6 +27,11 @@ class _HomePageState extends State<HomePage> {
   late DateTime _selectedDate;
   late DateTime _focusedDate;
 
+  // 將顏色變數定義放在這裡，因為它們是狀態的一部分
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _accentColor = const Color(0xFF5E91B3); // 較淺的藍色
+  final Color _secondaryColor = const Color(0xFFF0F0F0); // 淺灰色背景
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +52,6 @@ class _HomePageState extends State<HomePage> {
       }
     }
 
-    // 無論有無資料，都導航到歷史頁面
     if (mounted) {
       Navigator.push(
         context,
@@ -71,61 +75,105 @@ class _HomePageState extends State<HomePage> {
         userEmail: widget.email,
       ),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "WakeMate",
-          style: TextStyle(color: Color.fromARGB(255, 97, 60, 30)),
+          style: TextStyle(
+            color: _primaryColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: Builder(
           builder:
               (context) => IconButton(
-                icon: const Icon(
-                  Icons.menu,
-                  size: 30,
-                  color: Color.fromARGB(255, 97, 60, 30),
-                ),
+                icon: Icon(Icons.menu, size: 30, color: _primaryColor),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            TableCalendar(
-              firstDay: DateTime(2000),
-              lastDay: DateTime(2100),
-              focusedDay: _focusedDate,
-              selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
-              onDaySelected: (selected, focused) {
-                setState(() {
-                  _selectedDate = selected;
-                  _focusedDate = focused;
-                });
-              },
-              calendarStyle: const CalendarStyle(
-                selectedDecoration: BoxDecoration(
-                  color: Color.fromARGB(255, 72, 203, 140),
-                  shape: BoxShape.circle,
-                ),
-                todayDecoration: BoxDecoration(
-                  color: Color.fromARGB(100, 72, 203, 140),
-                  shape: BoxShape.circle,
-                ),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 2,
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
+              child: TableCalendar(
+                firstDay: DateTime.utc(2000, 1, 1),
+                lastDay: DateTime.utc(2100, 12, 31),
+                focusedDay: _focusedDate,
+                selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
+                onDaySelected: (selected, focused) {
+                  setState(() {
+                    _selectedDate = selected;
+                    _focusedDate = focused;
+                  });
+                },
+                calendarStyle: CalendarStyle(
+                  selectedDecoration: BoxDecoration(
+                    color: _accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: _accentColor.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  defaultTextStyle: TextStyle(color: _primaryColor),
+                  weekendTextStyle: TextStyle(color: _primaryColor),
+                  markerDecoration: BoxDecoration(
+                    color: _accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  //titleTextBaseline: TextBaseline.alphabetic,
+                  titleTextStyle: TextStyle(
+                    color: _primaryColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  leftChevronIcon: Icon(
+                    Icons.chevron_left,
+                    color: _primaryColor,
+                  ),
+                  rightChevronIcon: Icon(
+                    Icons.chevron_right,
+                    color: _primaryColor,
+                  ),
+                ),
+                daysOfWeekStyle: DaysOfWeekStyle(
+                  weekendStyle: TextStyle(color: _accentColor),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 41, 83, 49),
+                      backgroundColor: _primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 5,
                     ),
                     onPressed: () {
                       Navigator.push(
@@ -139,19 +187,24 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                     },
-                    child: const Text('新增', style: TextStyle(fontSize: 18)),
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('新增', style: TextStyle(fontSize: 18)),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 20),
                 Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 41, 83, 49),
-                      foregroundColor: Colors.white,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _primaryColor,
+                      side: BorderSide(color: _primaryColor),
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: _navigateToHistoryPage,
-                    child: const Text('紀錄', style: TextStyle(fontSize: 18)),
+                    icon: const Icon(Icons.history),
+                    label: const Text('歷史紀錄', style: TextStyle(fontSize: 18)),
                   ),
                 ),
               ],
@@ -159,11 +212,9 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
-        color: Colors.white,
-        notchMargin: 6.0,
+        color: _secondaryColor,
         child: const SizedBox(height: 60),
       ),
     );

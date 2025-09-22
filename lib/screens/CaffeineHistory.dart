@@ -12,15 +12,29 @@ class CaffeineHistoryPage extends StatelessWidget {
     required this.userId,
   });
 
+  // 定義顏色和樣式
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _accentColor = const Color(0xFF5E91B3); // 淺藍色
+  final Color _backgroundColor = const Color(0xFFF0F2F5); // 淺灰色背景
+  final Color _cardColor = Colors.white; // 卡片白色背景
+  final Color _textColor = const Color(0xFF424242); // 深灰色文字
+
   @override
   Widget build(BuildContext context) {
     bool hasHistory = recommendationData.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text("咖啡因建議結果"),
+        title: Text(
+          "咖啡因建議結果",
+          style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: _primaryColor),
           onPressed: () {
             Navigator.pushAndRemoveUntil(
               context,
@@ -55,51 +69,57 @@ class CaffeineHistoryPage extends StatelessWidget {
                   }
 
                   return Card(
+                    color: _cardColor,
                     elevation: 4.0,
                     margin: const EdgeInsets.only(bottom: 16.0),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
+                      borderRadius: BorderRadius.circular(16.0),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(20.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             "咖啡因建議",
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: _primaryColor,
                             ),
                           ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.access_time,
-                                color: Colors.blueAccent,
+                                color: _accentColor,
+                                size: 24,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Text(
                                 "建議攝取時間：$formattedTime",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.black54,
+                                  color: _textColor,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
-                              const Icon(Icons.local_cafe, color: Colors.brown),
-                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.local_cafe,
+                                color: _accentColor,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
                               Text(
                                 "建議攝取量：$recommendedAmount 毫克",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.black54,
+                                  color: _textColor,
                                 ),
                               ),
                             ],
@@ -115,18 +135,29 @@ class CaffeineHistoryPage extends StatelessWidget {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.coffee_outlined, size: 60, color: Colors.grey),
-                      SizedBox(height: 16),
+                    children: [
+                      Icon(
+                        Icons.coffee_outlined,
+                        size: 80,
+                        color: _accentColor.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 24),
                       Text(
-                        "目前沒有歷史紀錄。",
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                        "目前沒有歷史紀錄",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: _textColor.withOpacity(0.7),
+                        ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         "完成一次咖啡因建議後，您的結果會顯示在這裡。",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: _textColor.withOpacity(0.5),
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],

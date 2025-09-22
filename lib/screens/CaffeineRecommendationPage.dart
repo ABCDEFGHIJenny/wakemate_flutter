@@ -35,6 +35,10 @@ class _CaffeineRecommendationPageState
   late DateTime _sleepEnd;
   late DateTime _caffeineIntakeTime;
 
+  // 定義新的顏色
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _accentColor = const Color(0xFF5E91B3); // 較淺的藍色
+
   @override
   void initState() {
     super.initState();
@@ -130,7 +134,7 @@ class _CaffeineRecommendationPageState
           ),
           title: const Text(
             "確認您的資料",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold), // 標題字體
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -164,7 +168,7 @@ class _CaffeineRecommendationPageState
                 sendAllDataAndFetchRecommendation();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: _primaryColor, // 替換為新顏色
                 foregroundColor: Colors.white,
               ),
               child: const Text("確認並送出"),
@@ -327,7 +331,7 @@ class _CaffeineRecommendationPageState
             ElevatedButton(
               onPressed: _showConfirmationDialog,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: _primaryColor, // 替換為新顏色
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -375,7 +379,7 @@ class _CaffeineRecommendationPageState
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          prefixIcon: Icon(icon, color: _accentColor), // 替換為新顏色
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -409,7 +413,7 @@ class _CaffeineRecommendationPageState
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: const Icon(Icons.access_time, color: Colors.blueAccent),
+            prefixIcon: Icon(Icons.access_time, color: _accentColor), // 替換為新顏色
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -481,8 +485,8 @@ class _CaffeineRecommendationPageState
             onDateTimeSelected: onDateTimeSelected,
           ),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.blueAccent,
-        side: const BorderSide(color: Colors.blueAccent),
+        foregroundColor: _accentColor, // 替換為新顏色
+        side: BorderSide(color: _accentColor), // 替換為新顏色
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(vertical: 16),
       ),

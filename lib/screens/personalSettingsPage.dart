@@ -22,30 +22,35 @@ class _SettingsPageState extends State<SettingsPage> {
   final String baseUrl = 'https://wakemate-api-4-0.onrender.com';
   String? _existingRecordId;
 
+  // 定義顏色和樣式
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _accentColor = const Color(0xFF5E91B3); // 淺藍色
+  final Color _backgroundColor = const Color(0xFFF0F2F5); // 淺灰色背景
+  final Color _cardColor = Colors.white; // 卡片白色背景
+  final Color _textColor = const Color(0xFF424242); // 深灰色文字
+
   @override
   void initState() {
     super.initState();
     _loadUserSettings();
-    // 監聽身高和體重變化以自動計算 BMI
     _heightController.addListener(_calculateBMI);
     _weightController.addListener(_calculateBMI);
   }
 
-  // 自動計算 BMI
   void _calculateBMI() {
     final double? height = double.tryParse(_heightController.text);
     final double? weight = double.tryParse(_weightController.text);
 
     if (height != null && weight != null && height > 0) {
       final double bmi = weight / ((height / 100) * (height / 100));
-      _bmiController.text = bmi.toStringAsFixed(2); // 保留兩位小數
+      _bmiController.text = bmi.toStringAsFixed(2);
     } else {
       _bmiController.text = '';
     }
   }
 
   Future<void> _loadUserSettings() async {
-    setState(() => _isLoading = true); // 開始加載時顯示 loading 狀態
+    setState(() => _isLoading = true);
     try {
       final res = await http.get(
         Uri.parse('$baseUrl/users_body_info/?user_id=${widget.userId}'),
@@ -83,7 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ).showSnackBar(SnackBar(content: Text("讀取資料錯誤：$e")));
       }
     } finally {
-      setState(() => _isLoading = false); // 加載結束時隱藏 loading 狀態
+      setState(() => _isLoading = false);
     }
   }
 
@@ -110,14 +115,12 @@ class _SettingsPageState extends State<SettingsPage> {
       http.Response res;
 
       if (_existingRecordId != null) {
-        // 更新
         res = await http.put(
           Uri.parse('$baseUrl/users_body_info/${_existingRecordId!}/'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(body),
         );
       } else {
-        // 新增
         res = await http.post(
           Uri.parse('$baseUrl/users_body_info/'),
           headers: {'Content-Type': 'application/json'},
@@ -166,69 +169,95 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "個人身體數據",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent, // 更吸引人的 AppBar 顏色
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: _primaryColor),
       ),
       body:
           _isLoading && _existingRecordId == null
-              ? const Center(child: CircularProgressIndicator()) // 初次加載時顯示圓形進度條
+              ? Center(child: CircularProgressIndicator(color: _accentColor))
               : SingleChildScrollView(
-                padding: const EdgeInsets.all(20), // 增加整體內邊距
+                padding: const EdgeInsets.all(24),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      const SizedBox(height: 10),
+                      Text(
                         "性別",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: _textColor,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text("男"),
-                              value: "M",
-                              groupValue: _gender,
-                              onChanged: (value) {
-                                setState(() {
-                                  _gender = value;
-                                });
-                              },
-                              activeColor: Colors.blueAccent,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: _cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.2),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                              offset: const Offset(0, 3),
                             ),
-                          ),
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text("女"),
-                              value: "F",
-                              groupValue: _gender,
-                              onChanged: (value) {
-                                setState(() {
-                                  _gender = value;
-                                });
-                              },
-                              activeColor: Colors.blueAccent,
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: Text(
+                                  "男",
+                                  style: TextStyle(color: _textColor),
+                                ),
+                                value: "M",
+                                groupValue: _gender,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _gender = value;
+                                  });
+                                },
+                                activeColor: _accentColor,
+                              ),
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: Text(
+                                  "女",
+                                  style: TextStyle(color: _textColor),
+                                ),
+                                value: "F",
+                                groupValue: _gender,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _gender = value;
+                                  });
+                                },
+                                activeColor: _accentColor,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 20), // 增加間距
+                      const SizedBox(height: 24),
                       _buildTextFormField(
                         controller: _ageController,
                         labelText: "年齡",
                         hintText: "請輸入您的年齡",
                         keyboardType: TextInputType.number,
+                        prefixIcon: Icons.cake_outlined,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return "年齡為必填項";
@@ -246,6 +275,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         labelText: "身高 (cm)",
                         hintText: "請輸入您的身高",
                         keyboardType: TextInputType.number,
+                        prefixIcon: Icons.height,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return "身高為必填項";
@@ -263,6 +293,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         labelText: "體重 (kg)",
                         hintText: "請輸入您的體重",
                         keyboardType: TextInputType.number,
+                        prefixIcon: Icons.scale,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return "體重為必填項";
@@ -280,28 +311,29 @@ class _SettingsPageState extends State<SettingsPage> {
                         labelText: "BMI",
                         hintText: "將自動計算您的 BMI",
                         keyboardType: TextInputType.number,
-                        readOnly: true, // BMI 自動計算，設為只讀
-                        fillColor: Colors.grey[100], // 淺灰色背景表示只讀
+                        prefixIcon: Icons.calculate,
+                        readOnly: true,
+                        fillColor: Colors.grey[200],
                       ),
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
-                        height: 50,
+                        height: 55,
                         child: ElevatedButton.icon(
                           onPressed: _isLoading ? null : _saveSettings,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent,
+                            backgroundColor: _primaryColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 5,
                           ),
                           icon:
                               _isLoading
                                   ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: 24,
+                                    height: 24,
                                     child: CircularProgressIndicator(
                                       color: Colors.white,
                                       strokeWidth: 2,
@@ -328,6 +360,7 @@ class _SettingsPageState extends State<SettingsPage> {
     String? hintText,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
+    IconData? prefixIcon,
     bool readOnly = false,
     Color? fillColor,
   }) {
@@ -336,24 +369,29 @@ class _SettingsPageState extends State<SettingsPage> {
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
+        labelStyle: TextStyle(color: _textColor),
+        hintStyle: TextStyle(color: _textColor.withOpacity(0.5)),
+        prefixIcon:
+            prefixIcon != null ? Icon(prefixIcon, color: _primaryColor) : null,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.grey),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade400),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade400),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _primaryColor, width: 2),
         ),
         filled: true,
-        fillColor: fillColor ?? Colors.white,
+        fillColor: fillColor ?? _cardColor,
       ),
       keyboardType: keyboardType,
       validator: validator,
       readOnly: readOnly,
+      style: TextStyle(color: _textColor),
     );
   }
 }

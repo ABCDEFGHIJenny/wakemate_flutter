@@ -24,6 +24,13 @@ class _RegisterPageState extends State<RegisterPage> {
   // 一個布林值，用來追蹤非同步操作是否正在進行
   bool isLoading = false;
 
+  // 定義顏色和樣式
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _accentColor = const Color(0xFF5E91B3); // 淺藍色
+  final Color _backgroundColor = const Color(0xFFF0F2F5); // 淺灰色背景
+  final Color _cardColor = Colors.white; // 卡片白色背景
+  final Color _textColor = const Color(0xFF424242); // 深灰色文字
+
   // 這個非同步函數處理使用者註冊流程
   Future<void> _registerUser() async {
     final name = nameController.text.trim();
@@ -90,7 +97,7 @@ class _RegisterPageState extends State<RegisterPage> {
           // 如果伺服器回應不是有效的 JSON 格式
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text("❌ 註冊失敗：伺服器回傳了無效的回應")));
+          ).showSnackBar(const SnackBar(content: Text("❌ 註冊失敗：伺服器回傳了無效的回應")));
         }
       }
     } catch (e) {
@@ -107,13 +114,23 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("註冊使用者")),
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: Text(
+          "註冊新帳號",
+          style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: _primaryColor),
+      ),
       body: Center(
         child: SingleChildScrollView(
           // 使用 SingleChildScrollView 避免鍵盤彈出時溢位
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(24.0),
           child: Card(
-            elevation: 8.0, // 增加陰影效果
+            elevation: 12.0, // 增加陰影效果
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20.0), // 設定圓角
             ),
@@ -125,20 +142,25 @@ class _RegisterPageState extends State<RegisterPage> {
                   Text(
                     "創建新帳號",
                     style: TextStyle(
-                      fontSize: 24.0,
+                      fontSize: 28.0,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
+                      color: _primaryColor,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   TextField(
                     controller: nameController,
                     decoration: InputDecoration(
                       labelText: "名稱",
+                      labelStyle: TextStyle(color: _textColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      prefixIcon: const Icon(Icons.person),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: _accentColor, width: 2),
+                      ),
+                      prefixIcon: Icon(Icons.person, color: _primaryColor),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -146,10 +168,15 @@ class _RegisterPageState extends State<RegisterPage> {
                     controller: emailController,
                     decoration: InputDecoration(
                       labelText: "Email",
+                      labelStyle: TextStyle(color: _textColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      prefixIcon: const Icon(Icons.email),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: _accentColor, width: 2),
+                      ),
+                      prefixIcon: Icon(Icons.email, color: _primaryColor),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
@@ -158,28 +185,42 @@ class _RegisterPageState extends State<RegisterPage> {
                     controller: passwordController,
                     decoration: InputDecoration(
                       labelText: "密碼",
+                      labelStyle: TextStyle(color: _textColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      prefixIcon: const Icon(Icons.lock),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: _accentColor, width: 2),
+                      ),
+                      prefixIcon: Icon(Icons.lock, color: _primaryColor),
                     ),
                     obscureText: true,
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 55,
                     child: ElevatedButton(
                       onPressed: isLoading ? null : _registerUser,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryColor,
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.0),
                         ),
+                        elevation: 5,
                       ),
-                      child: Text(
-                        isLoading ? "註冊中..." : "註冊",
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                      child:
+                          isLoading
+                              ? const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              )
+                              : const Text(
+                                "註冊",
+                                style: TextStyle(fontSize: 18),
+                              ),
                     ),
                   ),
                 ],

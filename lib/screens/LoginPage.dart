@@ -26,14 +26,12 @@ class _LoginPageState extends State<LoginPage> {
   final Color _errorColor = const Color(0xFFE53935); // 紅色
 
   @override
-  void initState() {
-    super.initState();
-
-    nameController.text = "1414";
-    emailController.text = "1414@gmail.com";
-    passwordController.text = "1414";
-  }
-
+  // void initState() {
+  //   super.initState();
+  //   nameController.text = "1414";
+  //   emailController.text = "1414@gmail.com";
+  //   passwordController.text = "1414";
+  // }
   Future<void> _loginUser() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();

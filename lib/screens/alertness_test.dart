@@ -103,14 +103,19 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
     } else {
       _timer?.cancel();
       final reaction = DateTime.now().difference(_startTime!);
-      _reactionTimes.add(reaction);
+
+      // 在此處減去 100 毫秒來調整反應時間
+      final adjustedReaction = reaction - const Duration(milliseconds: 100);
+
+      _reactionTimes.add(adjustedReaction);
       _currentTrial++;
 
       setState(() {
         _testStarted = false;
         _boxColor = _boxDefaultColor;
         _isError = false;
-        _resultMessage = "第$_currentTrial次: ${reaction.inMilliseconds} 毫秒";
+        _resultMessage =
+            "第$_currentTrial次: ${adjustedReaction.inMilliseconds} 毫秒";
       });
 
       Future.delayed(const Duration(milliseconds: 1000), () {
@@ -134,23 +139,23 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
   String _getKssDescription(int level) {
     switch (level) {
       case 1:
-        return "非常清醒";
+        return "極度警醒";
       case 2:
-        return "非常清醒，努力集中注意力";
+        return "非常警醒";
       case 3:
-        return "清醒，不費力";
+        return "警醒";
       case 4:
-        return "有點清醒，有一點費力";
+        return "比較警醒";
       case 5:
-        return "清醒，但有些疲勞";
+        return "不太警醒但也無睏意";
       case 6:
-        return "清醒，但感覺有點睏";
+        return "有一些睏意傾向";
       case 7:
-        return "清醒，但很睏，需要努力保持清醒";
+        return "有睏意，但是不需要努力保持清醒";
       case 8:
-        return "非常睏，努力保持清醒";
+        return "有睏意，且需要一定的努力保持清醒";
       case 9:
-        return "非常睏，已經睡著了";
+        return "非常睏倦，需要極大的努力保持清醒";
       default:
         return "";
     }
@@ -317,7 +322,7 @@ class _AlertnessTestPageState extends State<AlertnessTestPage> {
     int lapses,
     int falseStarts,
   ) async {
-    final url = Uri.parse('$baseUrl/users_pvt');
+    final url = Uri.parse('$baseUrl/users_pvt/');
 
     try {
       final res = await http.post(

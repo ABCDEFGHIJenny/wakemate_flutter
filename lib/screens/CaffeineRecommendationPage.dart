@@ -44,6 +44,7 @@ class _CaffeineRecommendationPageState
     super.initState();
     final selected = widget.selectedDate;
 
+    // 使用傳入的 selectedDate 初始化所有日期時間
     _targetStart = DateTime(selected.year, selected.month, selected.day, 8, 0);
     _targetEnd = _targetStart.add(const Duration(hours: 8));
     _sleepStart = DateTime(selected.year, selected.month, selected.day, 23, 0);
@@ -65,6 +66,7 @@ class _CaffeineRecommendationPageState
   }
 
   String _formatDate(DateTime dateTime) {
+    // 確保時間格式為 API 所需的 UTC 格式
     return DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(dateTime.toUtc());
   }
 
@@ -100,6 +102,7 @@ class _CaffeineRecommendationPageState
     required DateTime initialDate,
     required ValueChanged<DateTime> onDateTimeSelected,
   }) async {
+    // 選擇日期時，將初次日期設定為選取時間的日期
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -125,6 +128,14 @@ class _CaffeineRecommendationPageState
   }
 
   void _showConfirmationDialog() {
+    // 驗證咖啡因含量是否為數字
+    // if (caffeineController.text.isEmpty ||
+    //     drinkNameController.text.isEmpty ||
+    //     int.tryParse(caffeineController.text) == null) {
+    //   _showSnackBar("請正確填寫咖啡因含量 (數字) 與飲料名稱");
+    //   return;
+    // }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -181,6 +192,7 @@ class _CaffeineRecommendationPageState
 
   Future<void> sendAllDataAndFetchRecommendation() async {
     if (caffeineController.text.isEmpty || drinkNameController.text.isEmpty) {
+      // 雖然在確認對話框裡檢查了，但這裡作為保險
       _showSnackBar("請填寫所有咖啡因資料");
       return;
     }
@@ -190,6 +202,7 @@ class _CaffeineRecommendationPageState
     try {
       final headers = {"Content-Type": "application/json"};
 
+      // 1. 發送睡眠時間
       final sleepData = {
         "user_id": userId,
         "sleep_start_time": _formatDate(_sleepStart),
@@ -204,6 +217,7 @@ class _CaffeineRecommendationPageState
           )
           .timeout(const Duration(seconds: 15));
 
+      // 2. 發送清醒時間
       final wakeData = {
         "user_id": userId,
         "target_start_time": _formatDate(_targetStart),
@@ -218,6 +232,7 @@ class _CaffeineRecommendationPageState
           )
           .timeout(const Duration(seconds: 15));
 
+      // 3. 發送咖啡因攝取資料
       final intakeData = {
         'user_id': userId,
         'caffeine_amount': int.tryParse(caffeineController.text) ?? 0,
@@ -233,6 +248,7 @@ class _CaffeineRecommendationPageState
           )
           .timeout(const Duration(seconds: 15));
 
+      // 4. 取得咖啡因建議
       final recommendationUrl =
           "https://wakemate-api-4-0.onrender.com/recommendations/?user_id=$userId";
       final recommendationResponse = await http
@@ -243,21 +259,27 @@ class _CaffeineRecommendationPageState
         final data = json.decode(recommendationResponse.body);
         _showSnackBar("計算成功！", color: Colors.green);
 
+        // 儲存至本地 (Shared Preferences)
         final prefs = await SharedPreferences.getInstance();
+        // 確保儲存的是列表格式 (雖然 API 應該回傳列表，但多一層判斷更安全)
+        final List<dynamic> historyToSave = data is List ? data : [data];
         await prefs.setString(
           'caffeine_recommendations',
-          json.encode(data is List ? data : [data]),
+          json.encode(historyToSave),
         );
 
         if (!mounted) return;
 
+        // 導航到歷史紀錄頁面，並傳遞選取的日期
         Navigator.push(
           context,
           MaterialPageRoute(
             builder:
                 (context) => CaffeineHistoryPage(
-                  recommendationData: data is List ? data : [data],
+                  recommendationData: historyToSave,
                   userId: widget.userId,
+                  // *** 修正點：傳遞必填的 selectedDate 參數 ***
+                  selectedDate: widget.selectedDate,
                 ),
           ),
         );
@@ -290,7 +312,9 @@ class _CaffeineRecommendationPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildSectionTitle("時間排程"),
+            _buildSectionTitle(
+              "時間排程 (選取日期: ${DateFormat('yyyy/MM/dd').format(widget.selectedDate)})",
+            ),
             _buildTimeCard(
               "目標清醒時間",
               _targetStart,

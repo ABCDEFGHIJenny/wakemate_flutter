@@ -35,20 +35,27 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    // 初始化為當前日期
     _selectedDate = DateTime.now();
     _focusedDate = DateTime.now();
   }
 
+  // ============== 修正：傳遞 _selectedDate 參數 ==============
   Future<void> _navigateToHistoryPage() async {
     final prefs = await SharedPreferences.getInstance();
+    // 這裡假設您的 SharedPreferences key 是 'caffeine_recommendations'
     final String? jsonData = prefs.getString('caffeine_recommendations');
 
     List<dynamic> historyData = [];
     if (jsonData != null) {
       try {
+        // 解析儲存的 JSON 字串
         historyData = json.decode(jsonData);
       } catch (e) {
+        // 解析失敗，設定為空列表
         historyData = [];
+        // 您可以添加 log 資訊來追蹤錯誤
+        // print('Error decoding caffeine history data: $e');
       }
     }
 
@@ -60,6 +67,8 @@ class _HomePageState extends State<HomePage> {
               (context) => CaffeineHistoryPage(
                 recommendationData: historyData,
                 userId: widget.userId,
+                // *** 修正點：傳遞使用者選取的日期給歷史紀錄頁面 ***
+                selectedDate: _selectedDate,
               ),
         ),
       );
@@ -69,6 +78,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // 使用 CustomDrawer
       drawer: CustomDrawer(
         userId: widget.userId,
         userName: widget.userName,
@@ -98,6 +108,7 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
+            // 日曆元件
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -115,6 +126,7 @@ class _HomePageState extends State<HomePage> {
                 firstDay: DateTime.utc(2000, 1, 1),
                 lastDay: DateTime.utc(2100, 12, 31),
                 focusedDay: _focusedDate,
+                // 確保只比較日期部分
                 selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
                 onDaySelected: (selected, focused) {
                   setState(() {
@@ -141,7 +153,6 @@ class _HomePageState extends State<HomePage> {
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  //titleTextBaseline: TextBaseline.alphabetic,
                   titleTextStyle: TextStyle(
                     color: _primaryColor,
                     fontSize: 20,
@@ -162,6 +173,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 30),
+            // 按鈕區塊
             Row(
               children: [
                 Expanded(
@@ -202,7 +214,7 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: _navigateToHistoryPage,
+                    onPressed: _navigateToHistoryPage, // 觸發帶參數的跳轉
                     icon: const Icon(Icons.history),
                     label: const Text('歷史紀錄', style: TextStyle(fontSize: 18)),
                   ),

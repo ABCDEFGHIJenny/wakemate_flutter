@@ -5,11 +5,15 @@ import 'package:intl/intl.dart';
 class CaffeineHistoryPage extends StatelessWidget {
   final List<dynamic> recommendationData;
   final String userId;
+  // 🎯 新增：接收從 HomePage 傳入的選取日期
+  final DateTime selectedDate;
 
   const CaffeineHistoryPage({
     super.key,
     this.recommendationData = const [],
     required this.userId,
+    // 🎯 標記為必填
+    required this.selectedDate,
   });
 
   // 定義顏色和樣式
@@ -19,19 +23,28 @@ class CaffeineHistoryPage extends StatelessWidget {
   final Color _cardColor = Colors.white; // 卡片白色背景
   final Color _textColor = const Color(0xFF424242); // 深灰色文字
 
-  // --- 新增的過濾方法 ---
-  List<dynamic> _filterTodayData() {
+  // 🎯 修改：根據傳入的 selectedDate 過濾數據
+  List<dynamic> _filterSelectedDateData() {
     if (recommendationData.isEmpty) {
       return [];
     }
 
-    // 取得今天的日期，並將時間部分設為午夜 00:00:00
-    final now = DateTime.now().toLocal();
-    final today = DateTime(now.year, now.month, now.day);
+    // 取得選取日期的午夜 00:00:00 作為該日期的起始點 (本地時間)
+    final dateStart = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+    // 取得選取日期隔天的午夜 00:00:00 作為該日期的結束點 (本地時間)
+    final dateEnd = dateStart.add(const Duration(days: 1));
 
     return recommendationData.where((item) {
       final String recommendedTimingStr =
           item['recommended_caffeine_intake_timing'] ?? '';
+
+      if (recommendedTimingStr.isEmpty) {
+        return false;
+      }
 
       try {
         // 將 UTC 時間字串解析為 DateTime
@@ -39,30 +52,35 @@ class CaffeineHistoryPage extends StatelessWidget {
         // 轉換為本地時間
         final localDateTime = utcDateTime.toLocal();
 
-        // 檢查該紀錄的時間是否在今天或之後
-        // (因為 `recommendationData` 似乎是以日期時間順序排列，
-        // 這裡只需檢查它是否在今天的午夜 00:00:00 之後)
-        return localDateTime.isAfter(today);
+        // 過濾條件：紀錄時間必須在 dateStart (含) 和 dateEnd (不含) 之間
+        // 為了確保包含 dateStart 當天 00:00:00 的精確匹配，使用 isAfter 減去微小時間
+        return localDateTime.isAfter(
+              dateStart.subtract(const Duration(milliseconds: 1)),
+            ) &&
+            localDateTime.isBefore(dateEnd);
       } catch (e) {
         // 解析失敗的數據一律不顯示
+        // print('Error parsing date: $e for string: $recommendedTimingStr');
         return false;
       }
     }).toList();
   }
-  // --- 新增的過濾方法結束 ---
 
   @override
   Widget build(BuildContext context) {
-    // 過濾出今天的歷史紀錄
-    final todayHistory = _filterTodayData();
-    bool hasHistory = todayHistory.isNotEmpty;
+    // 🎯 使用新的過濾方法
+    final selectedDateHistory = _filterSelectedDateData();
+    bool hasHistory = selectedDateHistory.isNotEmpty;
+
+    // 格式化選取日期，用於 App Bar 標題
+    final String formattedDate = DateFormat('yyyy/MM/dd').format(selectedDate);
 
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        // 將標題改為「今日咖啡因建議結果」以反映過濾後的內容
+        // 🎯 修改標題：顯示正在查看哪天的紀錄
         title: Text(
-          "今日咖啡因建議結果",
+          "$formattedDate 咖啡因建議結果",
           style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -71,7 +89,7 @@ class CaffeineHistoryPage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: _primaryColor),
           onPressed: () {
-            // 確保返回到 HomePage
+            // 返回到 HomePage，並清除所有路由堆棧，避免重複堆疊
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => HomePage(userId: userId)),
@@ -84,13 +102,14 @@ class CaffeineHistoryPage extends StatelessWidget {
           hasHistory
               ? ListView.builder(
                 padding: const EdgeInsets.all(16.0),
-                // *** 使用過濾後的 todayHistory ***
-                itemCount: todayHistory.length,
+                // 🎯 使用過濾後的 selectedDateHistory
+                itemCount: selectedDateHistory.length,
                 itemBuilder: (context, index) {
-                  final item = todayHistory[index];
+                  final item = selectedDateHistory[index];
 
                   final String recommendedTimingStr =
                       item['recommended_caffeine_intake_timing'] ?? 'N/A';
+                  // 假設攝取量是數字或字串
                   final recommendedAmount =
                       item['recommended_caffeine_amount'] ?? 'N/A';
 
@@ -181,7 +200,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        "今日尚無建議歷史紀錄", // 變更提示文字
+                        "$formattedDate 尚無建議歷史紀錄", // 🎯 變更提示文字
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -191,7 +210,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "完成今日咖啡因建議後，結果將顯示在這裡。", // 變更提示文字
+                        "您可以在日曆上選擇其他日期或新增該日的建議。", // 🎯 變更提示文字
                         style: TextStyle(
                           fontSize: 16,
                           color: _textColor.withOpacity(0.5),

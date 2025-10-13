@@ -19,15 +19,50 @@ class CaffeineHistoryPage extends StatelessWidget {
   final Color _cardColor = Colors.white; // 卡片白色背景
   final Color _textColor = const Color(0xFF424242); // 深灰色文字
 
+  // --- 新增的過濾方法 ---
+  List<dynamic> _filterTodayData() {
+    if (recommendationData.isEmpty) {
+      return [];
+    }
+
+    // 取得今天的日期，並將時間部分設為午夜 00:00:00
+    final now = DateTime.now().toLocal();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return recommendationData.where((item) {
+      final String recommendedTimingStr =
+          item['recommended_caffeine_intake_timing'] ?? '';
+
+      try {
+        // 將 UTC 時間字串解析為 DateTime
+        final utcDateTime = DateTime.parse(recommendedTimingStr);
+        // 轉換為本地時間
+        final localDateTime = utcDateTime.toLocal();
+
+        // 檢查該紀錄的時間是否在今天或之後
+        // (因為 `recommendationData` 似乎是以日期時間順序排列，
+        // 這裡只需檢查它是否在今天的午夜 00:00:00 之後)
+        return localDateTime.isAfter(today);
+      } catch (e) {
+        // 解析失敗的數據一律不顯示
+        return false;
+      }
+    }).toList();
+  }
+  // --- 新增的過濾方法結束 ---
+
   @override
   Widget build(BuildContext context) {
-    bool hasHistory = recommendationData.isNotEmpty;
+    // 過濾出今天的歷史紀錄
+    final todayHistory = _filterTodayData();
+    bool hasHistory = todayHistory.isNotEmpty;
 
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
+        // 將標題改為「今日咖啡因建議結果」以反映過濾後的內容
         title: Text(
-          "咖啡因建議結果",
+          "今日咖啡因建議結果",
           style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -36,6 +71,7 @@ class CaffeineHistoryPage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: _primaryColor),
           onPressed: () {
+            // 確保返回到 HomePage
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => HomePage(userId: userId)),
@@ -48,9 +84,10 @@ class CaffeineHistoryPage extends StatelessWidget {
           hasHistory
               ? ListView.builder(
                 padding: const EdgeInsets.all(16.0),
-                itemCount: recommendationData.length,
+                // *** 使用過濾後的 todayHistory ***
+                itemCount: todayHistory.length,
                 itemBuilder: (context, index) {
-                  final item = recommendationData[index];
+                  final item = todayHistory[index];
 
                   final String recommendedTimingStr =
                       item['recommended_caffeine_intake_timing'] ?? 'N/A';
@@ -60,6 +97,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                   String formattedTime;
                   try {
                     final utcDateTime = DateTime.parse(recommendedTimingStr);
+                    // 轉換為本地時間，並顯示月/日 時:分
                     final localDateTime = utcDateTime.toLocal();
                     formattedTime = DateFormat(
                       'MM/dd HH:mm',
@@ -143,7 +181,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        "目前沒有歷史紀錄",
+                        "今日尚無建議歷史紀錄", // 變更提示文字
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -153,7 +191,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "完成一次咖啡因建議後，您的結果會顯示在這裡。",
+                        "完成今日咖啡因建議後，結果將顯示在這裡。", // 變更提示文字
                         style: TextStyle(
                           fontSize: 16,
                           color: _textColor.withOpacity(0.5),

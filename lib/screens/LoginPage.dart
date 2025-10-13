@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'home_page.dart';
 import 'RegisterPage.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 引入 SharedPreferences
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -26,12 +27,22 @@ class _LoginPageState extends State<LoginPage> {
   final Color _errorColor = const Color(0xFFE53935); // 紅色
 
   @override
-  // void initState() {
-  //   super.initState();
-  //   nameController.text = "1414";
-  //   emailController.text = "1414@gmail.com";
-  //   passwordController.text = "1414";
-  // }
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  // **🎯 新增：將使用者資訊儲存到 SharedPreferences**
+  Future<void> _saveLoginInfo(String userId, String name, String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userId', userId);
+    await prefs.setString('userName', name);
+    await prefs.setString('userEmail', email);
+    await prefs.setBool('isLoggedIn', true);
+  }
+
   Future<void> _loginUser() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
@@ -71,6 +82,9 @@ class _LoginPageState extends State<LoginPage> {
             data['user_id']?.toString() ?? data['id']?.toString();
 
         if (uuidFromServer != null && uuidFromServer.isNotEmpty) {
+          // **🎯 關鍵步驟：儲存登入資訊**
+          await _saveLoginInfo(uuidFromServer, name, email);
+
           final now = DateFormat('HH:mm').format(DateTime.now());
           final snackBar = SnackBar(
             content: Row(
@@ -94,6 +108,8 @@ class _LoginPageState extends State<LoginPage> {
             margin: const EdgeInsets.all(16),
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+          // 導航到主頁面
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -147,6 +163,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 您的 UI 程式碼保持不變
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(

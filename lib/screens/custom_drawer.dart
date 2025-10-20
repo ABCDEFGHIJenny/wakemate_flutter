@@ -15,6 +15,39 @@ class CustomDrawer extends StatelessWidget {
     required this.userEmail,
   });
 
+  // 輔助函式，用於建立統一風格的列表項目
+  Widget _buildDrawerItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    const Color primaryColor = Color(0xFF1F3D5B);
+
+    // ListTile 預設有垂直 padding，我們利用它來控制間距，不額外加 SizedBox
+    return ListTile(
+      leading: Icon(icon, color: primaryColor, size: 26),
+      title: Text(
+        title,
+        style: const TextStyle(color: primaryColor, fontSize: 16),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  // 建立分隔線，並使用 Padding 調整它與周圍項目的距離
+  Widget _buildSeparator() {
+    // 增加垂直 padding 來實現視覺上的分隔空間
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Divider(
+        height: 1, // 讓線條本身非常細
+        thickness: 1, // 線條厚度
+        color: const Color(0xFF1F3D5B).withOpacity(0.2), // 使用淺色分隔線
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 統一的顏色定義
@@ -87,7 +120,9 @@ class CustomDrawer extends StatelessWidget {
               );
             },
           ),
-          const Divider(),
+
+          // 修正點：使用自定義的 _buildSeparator 函式控制登出區塊間距
+          _buildSeparator(),
           _buildDrawerItem(
             context,
             icon: Icons.logout,
@@ -102,26 +137,6 @@ class CustomDrawer extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  // 輔助函式，用於建立統一風格的列表項目
-  Widget _buildDrawerItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    // 統一的顏色定義
-    const Color primaryColor = Color(0xFF1F3D5B);
-
-    return ListTile(
-      leading: Icon(icon, color: primaryColor, size: 26),
-      title: Text(
-        title,
-        style: const TextStyle(color: primaryColor, fontSize: 16),
-      ),
-      onTap: onTap,
     );
   }
 }

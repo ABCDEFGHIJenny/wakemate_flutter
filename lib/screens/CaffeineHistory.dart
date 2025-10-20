@@ -5,14 +5,12 @@ import 'package:intl/intl.dart';
 class CaffeineHistoryPage extends StatelessWidget {
   final List<dynamic> recommendationData;
   final String userId;
-  // 🎯 新增：接收從 HomePage 傳入的選取日期
   final DateTime selectedDate;
 
   const CaffeineHistoryPage({
     super.key,
     this.recommendationData = const [],
     required this.userId,
-    // 🎯 標記為必填
     required this.selectedDate,
   });
 
@@ -23,64 +21,95 @@ class CaffeineHistoryPage extends StatelessWidget {
   final Color _cardColor = Colors.white; // 卡片白色背景
   final Color _textColor = const Color(0xFF424242); // 深灰色文字
 
-  // 🎯 修改：根據傳入的 selectedDate 過濾數據
-  List<dynamic> _filterSelectedDateData() {
-    if (recommendationData.isEmpty) {
-      return [];
-    }
+  // --- 數據過濾邏輯 (保留) ---
 
-    // 取得選取日期的午夜 00:00:00 作為該日期的起始點 (本地時間)
+  /// 將 UTC 時間字串解析為本地 DateTime
+  DateTime? _parseAndLocalize(String? datetimeStr) {
+    if (datetimeStr == null || datetimeStr.isEmpty) return null;
+    try {
+      return DateTime.parse(datetimeStr).toLocal();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 檢查時間是否在選定日期內 (本地時間)
+  bool _isDateInRange(DateTime dateTime, DateTime dateStart, DateTime dateEnd) {
+    return dateTime.isAfter(
+          dateStart.subtract(const Duration(milliseconds: 1)),
+        ) &&
+        dateTime.isBefore(dateEnd);
+  }
+
+  /// 過濾系統推薦數據
+  List<dynamic> _filterRecommendedData(List<dynamic> data) {
+    if (data.isEmpty) return [];
+
     final dateStart = DateTime(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
     );
-    // 取得選取日期隔天的午夜 00:00:00 作為該日期的結束點 (本地時間)
     final dateEnd = dateStart.add(const Duration(days: 1));
 
-    return recommendationData.where((item) {
+    return data.where((item) {
       final String recommendedTimingStr =
           item['recommended_caffeine_intake_timing'] ?? '';
+      final localDateTime = _parseAndLocalize(recommendedTimingStr);
 
-      if (recommendedTimingStr.isEmpty) {
-        return false;
-      }
-
-      try {
-        // 將 UTC 時間字串解析為 DateTime
-        final utcDateTime = DateTime.parse(recommendedTimingStr);
-        // 轉換為本地時間
-        final localDateTime = utcDateTime.toLocal();
-
-        // 過濾條件：紀錄時間必須在 dateStart (含) 和 dateEnd (不含) 之間
-        // 為了確保包含 dateStart 當天 00:00:00 的精確匹配，使用 isAfter 減去微小時間
-        return localDateTime.isAfter(
-              dateStart.subtract(const Duration(milliseconds: 1)),
-            ) &&
-            localDateTime.isBefore(dateEnd);
-      } catch (e) {
-        // 解析失敗的數據一律不顯示
-        // print('Error parsing date: $e for string: $recommendedTimingStr');
-        return false;
-      }
+      if (localDateTime == null) return false;
+      return _isDateInRange(localDateTime, dateStart, dateEnd);
     }).toList();
+  }
+
+  /// 顯示單一數據行 (圖示 + 標題 + 內容)
+  Widget _buildDataRow({
+    required IconData icon,
+    required String title,
+    required String content,
+    required Color iconColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 90, // 固定寬度對齊標題
+            child: Text(
+              "$title:",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: _textColor.withOpacity(0.8),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              content,
+              style: TextStyle(fontSize: 14, color: _textColor),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🎯 使用新的過濾方法
-    final selectedDateHistory = _filterSelectedDateData();
+    final selectedDateHistory = _filterRecommendedData(recommendationData);
     bool hasHistory = selectedDateHistory.isNotEmpty;
 
-    // 格式化選取日期，用於 App Bar 標題
     final String formattedDate = DateFormat('yyyy/MM/dd').format(selectedDate);
 
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        // 🎯 修改標題：顯示正在查看哪天的紀錄
         title: Text(
-          "$formattedDate 咖啡因建議結果",
+          "$formattedDate 推薦結果",
           style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -89,38 +118,32 @@ class CaffeineHistoryPage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: _primaryColor),
           onPressed: () {
-            // 返回到 HomePage，並清除所有路由堆棧，避免重複堆疊
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage(userId: userId)),
-              (route) => false,
-            );
+            Navigator.pop(context);
           },
         ),
       ),
       body:
           hasHistory
               ? ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                // 🎯 使用過濾後的 selectedDateHistory
+                padding: const EdgeInsets.all(20.0),
                 itemCount: selectedDateHistory.length,
                 itemBuilder: (context, index) {
                   final item = selectedDateHistory[index];
 
                   final String recommendedTimingStr =
                       item['recommended_caffeine_intake_timing'] ?? 'N/A';
-                  // 假設攝取量是數字或字串
                   final recommendedAmount =
                       item['recommended_caffeine_amount'] ?? 'N/A';
 
                   String formattedTime;
                   try {
-                    final utcDateTime = DateTime.parse(recommendedTimingStr);
-                    // 轉換為本地時間，並顯示月/日 時:分
-                    final localDateTime = utcDateTime.toLocal();
-                    formattedTime = DateFormat(
-                      'MM/dd HH:mm',
-                    ).format(localDateTime);
+                    final localDateTime = _parseAndLocalize(
+                      recommendedTimingStr,
+                    );
+                    formattedTime =
+                        localDateTime != null
+                            ? DateFormat('MM/dd HH:mm').format(localDateTime)
+                            : '格式錯誤';
                   } catch (e) {
                     formattedTime = '格式錯誤';
                   }
@@ -138,48 +161,25 @@ class CaffeineHistoryPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "咖啡因建議",
+                            "咖啡因攝取建議",
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: _primaryColor,
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.access_time,
-                                color: _accentColor,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                "建議攝取時間：$formattedTime",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: _textColor,
-                                ),
-                              ),
-                            ],
+                          const Divider(height: 20),
+                          _buildDataRow(
+                            icon: Icons.access_time_filled,
+                            title: "建議時間",
+                            content: formattedTime,
+                            iconColor: _accentColor,
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.local_cafe,
-                                color: _accentColor,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                "建議攝取量：$recommendedAmount 毫克",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: _textColor,
-                                ),
-                              ),
-                            ],
+                          _buildDataRow(
+                            icon: Icons.local_cafe,
+                            title: "建議攝取",
+                            content: "$recommendedAmount 毫克",
+                            iconColor: _accentColor,
                           ),
                         ],
                       ),
@@ -200,7 +200,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        "$formattedDate 尚無建議歷史紀錄", // 🎯 變更提示文字
+                        "$formattedDate 尚無建議結果",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -210,7 +210,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "您可以在日曆上選擇其他日期或新增該日的建議。", // 🎯 變更提示文字
+                        "請返回並點擊「計算推薦」按鈕以生成新的建議。",
                         style: TextStyle(
                           fontSize: 16,
                           color: _textColor.withOpacity(0.5),

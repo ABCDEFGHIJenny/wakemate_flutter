@@ -7,6 +7,10 @@ import 'custom_drawer.dart';
 import 'CaffeineRecommendationPage.dart';
 import 'CaffeineHistory.dart';
 
+import 'SleepTimeLogPage.dart';
+import 'WakeTimeLogPage.dart';
+import 'CaffeineLogPage.dart';
+
 class HomePage extends StatefulWidget {
   final String userId;
   final String userName;
@@ -27,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   late DateTime _selectedDate;
   late DateTime _focusedDate;
 
-  // 將顏色變數定義放在這裡，因為它們是狀態的一部分
+  // 顏色變數
   final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
   final Color _accentColor = const Color(0xFF5E91B3); // 較淺的藍色
   final Color _secondaryColor = const Color(0xFFF0F0F0); // 淺灰色背景
@@ -40,7 +44,6 @@ class _HomePageState extends State<HomePage> {
     _focusedDate = DateTime.now();
   }
 
-  // ============== 修正：傳遞 _selectedDate 參數 ==============
   Future<void> _navigateToHistoryPage() async {
     final prefs = await SharedPreferences.getInstance();
     // 這裡假設您的 SharedPreferences key 是 'caffeine_recommendations'
@@ -54,7 +57,6 @@ class _HomePageState extends State<HomePage> {
       } catch (e) {
         // 解析失敗，設定為空列表
         historyData = [];
-        // 您可以添加 log 資訊來追蹤錯誤
         // print('Error decoding caffeine history data: $e');
       }
     }
@@ -67,12 +69,136 @@ class _HomePageState extends State<HomePage> {
               (context) => CaffeineHistoryPage(
                 recommendationData: historyData,
                 userId: widget.userId,
-                // *** 修正點：傳遞使用者選取的日期給歷史紀錄頁面 ***
+                // 傳遞使用者選取的日期給歷史紀錄頁面
                 selectedDate: _selectedDate,
               ),
         ),
       );
     }
+  }
+
+  // ============== 修正：顯示新增選項的 Modal Bottom Sheet ==============
+  void _showAddOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.only(top: 10, bottom: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // 拖曳指示器
+              Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 15),
+              // 標題
+              Text(
+                '新增紀錄',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: _primaryColor,
+                ),
+              ),
+              const Divider(),
+
+              // 1. 目標清醒時間 (Target Wake Time)
+              _buildOptionTile(
+                context,
+                title: '目標清醒時間',
+                icon: Icons.wb_sunny_outlined,
+                onTap: () {
+                  Navigator.pop(context); // 關閉 Bottom Sheet
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => TargetWakeTimePage(
+                            // 導向目標清醒頁面
+                            userId: widget.userId,
+                            selectedDate: _selectedDate,
+                          ),
+                    ),
+                  );
+                },
+              ),
+
+              // 2. 實際睡眠時間 (Actual Sleep Time)
+              _buildOptionTile(
+                context,
+                title: '實際睡眠時間',
+                icon: Icons.bed_outlined,
+                onTap: () {
+                  Navigator.pop(context); // 關閉 Bottom Sheet
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ActualSleepTimePage(
+                            // 導向實際睡眠頁面
+                            userId: widget.userId,
+                            selectedDate: _selectedDate,
+                          ),
+                    ),
+                  );
+                },
+              ),
+
+              // 3. 咖啡因紀錄選項
+              _buildOptionTile(
+                context,
+                title: '咖啡因紀錄',
+                icon: Icons.local_cafe_outlined,
+                onTap: () {
+                  Navigator.pop(context); // 關閉 Bottom Sheet
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => CaffeineLogPage(
+                            userId: widget.userId,
+                            selectedDate: _selectedDate, // 傳遞選取的日期
+                          ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ============== 共用的 ListTile 建立方法 ==============
+  Widget _buildOptionTile(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: _primaryColor, size: 28),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 18,
+          color: _primaryColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: Icon(Icons.arrow_forward_ios, color: _accentColor, size: 18),
+      onTap: onTap,
+    );
   }
 
   @override
@@ -188,16 +314,8 @@ class _HomePageState extends State<HomePage> {
                       elevation: 5,
                     ),
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => CaffeineRecommendationPage(
-                                userId: widget.userId,
-                                selectedDate: _selectedDate,
-                              ),
-                        ),
-                      );
+                      // 點擊新增按鈕時，顯示選項 Bottom Sheet
+                      _showAddOptions(context);
                     },
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text('新增', style: TextStyle(fontSize: 18)),

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Key 用於儲存多個目標清醒時間段 (本地緩存)
+// Key 用於儲存多個目標清醒時間段 (本地)
 const String _kTargetWakePeriodsKey = 'target_wake_periods_list_json';
 
 // 用於儲存每個時間段的資料結構
@@ -61,7 +61,7 @@ class _TargetWakeTimePageState extends State<TargetWakeTimePage> {
     _loadSavedPeriods();
   }
 
-  // ============== 資料加載與儲存 (本地緩存) ==============
+  // ============== 資料加載與儲存 (本地) ==============
   void _loadSavedPeriods() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString(_kTargetWakePeriodsKey);

@@ -32,9 +32,9 @@ class _HomePageState extends State<HomePage> {
   late DateTime _focusedDate;
 
   // 顏色變數
-  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
-  final Color _accentColor = const Color(0xFF5E91B3); // 較淺的藍色
-  final Color _secondaryColor = const Color(0xFFF0F0F0); // 淺灰色背景
+  final Color _primaryColor = const Color(0xFF1F3D5B);
+  final Color _accentColor = const Color(0xFF5E91B3);
+  final Color _secondaryColor = const Color(0xFFF0F0F0);
 
   @override
   void initState() {
@@ -46,7 +46,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _navigateToHistoryPage() async {
     final prefs = await SharedPreferences.getInstance();
-    // 這裡假設您的 SharedPreferences key 是 'caffeine_recommendations'
     final String? jsonData = prefs.getString('caffeine_recommendations');
 
     List<dynamic> historyData = [];
@@ -77,7 +76,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ============== 修正：顯示新增選項的 Modal Bottom Sheet ==============
+  // ============== 顯示新增選項的 Modal Bottom Sheet ==============
   void _showAddOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -322,6 +321,42 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(width: 20),
+
+                // === 計算推薦按鈕 ===
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 5,
+                    ),
+                    onPressed: () {
+                      // 跳轉到推薦頁面
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => CaffeineRecommendationPage(
+                                userId: widget.userId,
+                                selectedDate: _selectedDate,
+                              ),
+                        ),
+                      );
+
+                      // 呼叫一個計算函式
+                      // _calculateCaffeineRecommendation();
+                    },
+                    icon: const Icon(Icons.auto_graph),
+                    label: const Text('計算推薦', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+
+                const SizedBox(width: 20),
+
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(

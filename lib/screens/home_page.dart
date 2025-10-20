@@ -7,8 +7,9 @@ import 'custom_drawer.dart';
 import 'CaffeineRecommendationPage.dart';
 import 'CaffeineHistory.dart';
 
-import 'SleepTimeLogPage.dart';
+// 確保這些導入與您的檔案名稱完全一致
 import 'WakeTimeLogPage.dart';
+import 'SleepTimeLogPage.dart';
 import 'CaffeineLogPage.dart';
 
 class HomePage extends StatefulWidget {
@@ -32,9 +33,9 @@ class _HomePageState extends State<HomePage> {
   late DateTime _focusedDate;
 
   // 顏色變數
-  final Color _primaryColor = const Color(0xFF1F3D5B);
-  final Color _accentColor = const Color(0xFF5E91B3);
-  final Color _secondaryColor = const Color(0xFFF0F0F0);
+  final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
+  final Color _accentColor = const Color(0xFF5E91B3); // 較淺的藍色
+  final Color _secondaryColor = const Color(0xFFF0F0F0); // 淺灰色背景
 
   @override
   void initState() {
@@ -51,12 +52,9 @@ class _HomePageState extends State<HomePage> {
     List<dynamic> historyData = [];
     if (jsonData != null) {
       try {
-        // 解析儲存的 JSON 字串
         historyData = json.decode(jsonData);
       } catch (e) {
-        // 解析失敗，設定為空列表
         historyData = [];
-        // print('Error decoding caffeine history data: $e');
       }
     }
 
@@ -68,7 +66,6 @@ class _HomePageState extends State<HomePage> {
               (context) => CaffeineHistoryPage(
                 recommendationData: historyData,
                 userId: widget.userId,
-                // 傳遞使用者選取的日期給歷史紀錄頁面
                 selectedDate: _selectedDate,
               ),
         ),
@@ -110,19 +107,19 @@ class _HomePageState extends State<HomePage> {
               ),
               const Divider(),
 
-              // 1. 目標清醒時間 (Target Wake Time)
+              // 1. 清醒時段 (使用 WakeTimeLogPage)
               _buildOptionTile(
                 context,
-                title: '目標清醒時間',
+                title: '清醒時段', // 修正為您要求的名稱
                 icon: Icons.wb_sunny_outlined,
                 onTap: () {
-                  Navigator.pop(context); // 關閉 Bottom Sheet
+                  Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
+                      // 導航到 WakeTimeLogPage
                       builder:
                           (context) => TargetWakeTimePage(
-                            // 導向目標清醒頁面
                             userId: widget.userId,
                             selectedDate: _selectedDate,
                           ),
@@ -131,19 +128,19 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
 
-              // 2. 實際睡眠時間 (Actual Sleep Time)
+              // 2. 睡眠時段 (使用 SleepTimeLogPage)
               _buildOptionTile(
                 context,
-                title: '實際睡眠時間',
+                title: '睡眠時段', // 修正為您要求的名稱
                 icon: Icons.bed_outlined,
                 onTap: () {
-                  Navigator.pop(context); // 關閉 Bottom Sheet
+                  Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
+                      // 導航到 SleepTimeLogPage
                       builder:
                           (context) => ActualSleepTimePage(
-                            // 導向實際睡眠頁面
                             userId: widget.userId,
                             selectedDate: _selectedDate,
                           ),
@@ -152,20 +149,21 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
 
-              // 3. 咖啡因紀錄選項
+              // 3. 咖啡因紀錄選項 (使用 CaffeineLogPage)
               _buildOptionTile(
                 context,
-                title: '咖啡因紀錄',
+                title: '咖啡因紀錄', // 修正為您要求的名稱
                 icon: Icons.local_cafe_outlined,
                 onTap: () {
-                  Navigator.pop(context); // 關閉 Bottom Sheet
+                  Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
+                      // 導航到 CaffeineLogPage
                       builder:
                           (context) => CaffeineLogPage(
                             userId: widget.userId,
-                            selectedDate: _selectedDate, // 傳遞選取的日期
+                            selectedDate: _selectedDate,
                           ),
                     ),
                   );
@@ -200,15 +198,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ============== 主要頁面建構 ==============
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _secondaryColor, // 設定整個背景為淺灰色
       // 使用 CustomDrawer
       drawer: CustomDrawer(
         userId: widget.userId,
         userName: widget.userName,
         userEmail: widget.email,
       ),
+
       appBar: AppBar(
         title: Text(
           "WakeMate",
@@ -219,8 +220,8 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.transparent, // AppBar 透明
+        elevation: 0, // 移除陰影
         leading: Builder(
           builder:
               (context) => IconButton(
@@ -229,29 +230,26 @@ class _HomePageState extends State<HomePage> {
               ),
         ),
       ),
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.fromLTRB(
+          20.0,
+          0.0,
+          20.0,
+          40.0,
+        ), // 增加底部 padding
         child: Column(
           children: [
-            // 日曆元件
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
+            // 日曆元件 (使用 Card 提升質感)
+            Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 2,
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
               ),
               child: TableCalendar(
                 firstDay: DateTime.utc(2000, 1, 1),
                 lastDay: DateTime.utc(2100, 12, 31),
                 focusedDay: _focusedDate,
-                // 確保只比較日期部分
                 selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
                 onDaySelected: (selected, focused) {
                   setState(() {
@@ -297,45 +295,78 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
-            // 按鈕區塊
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 5,
-                    ),
-                    onPressed: () {
-                      // 點擊新增按鈕時，顯示選項 Bottom Sheet
-                      _showAddOptions(context);
-                    },
-                    icon: const Icon(Icons.add_circle_outline),
-                    label: const Text('新增', style: TextStyle(fontSize: 18)),
-                  ),
-                ),
-                const SizedBox(width: 20),
 
-                // === 計算推薦按鈕 ===
-                Expanded(
+            const SizedBox(height: 30),
+
+            // 按鈕區塊 (三顆按鈕重新排列)
+            Column(
+              children: [
+                // 第一排：新增 + 歷史紀錄
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 5,
+                        ),
+                        onPressed: () => _showAddOptions(context),
+                        icon: const Icon(Icons.add_circle_outline),
+                        label: const Text(
+                          '新增紀錄',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _primaryColor,
+                          side: BorderSide(color: _primaryColor, width: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _navigateToHistoryPage,
+                        icon: const Icon(Icons.history),
+                        label: const Text(
+                          '歷史紀錄',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // 第二排：計算推薦 (放大突出)
+                SizedBox(
+                  width: double.infinity, // 佔滿寬度
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _accentColor,
+                      backgroundColor: _accentColor, // 使用較亮顏色，突出
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                      elevation: 5,
+                      elevation: 8, // 增加陰影，更突出
                     ),
                     onPressed: () {
-                      // 跳轉到推薦頁面
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -346,41 +377,21 @@ class _HomePageState extends State<HomePage> {
                               ),
                         ),
                       );
-
-                      // 呼叫一個計算函式
-                      // _calculateCaffeineRecommendation();
                     },
-                    icon: const Icon(Icons.auto_graph),
-                    label: const Text('計算推薦', style: TextStyle(fontSize: 18)),
-                  ),
-                ),
-
-                const SizedBox(width: 20),
-
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _primaryColor,
-                      side: BorderSide(color: _primaryColor),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    icon: const Icon(Icons.auto_graph, size: 24),
+                    label: const Text(
+                      '計算咖啡因推薦',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    onPressed: _navigateToHistoryPage, // 觸發帶參數的跳轉
-                    icon: const Icon(Icons.history),
-                    label: const Text('歷史紀錄', style: TextStyle(fontSize: 18)),
                   ),
                 ),
               ],
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        color: _secondaryColor,
-        child: const SizedBox(height: 60),
       ),
     );
   }

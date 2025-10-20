@@ -343,7 +343,7 @@ class _CaffeineRecommendationPageState extends State<CaffeineRecommendationPage>
         ),
         const SizedBox(height: 8),
         Text(
-          "這可能需要一點時間，請耐心等候，結果馬上就來！",
+          "這可能需要一點時間，請耐心等候",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),

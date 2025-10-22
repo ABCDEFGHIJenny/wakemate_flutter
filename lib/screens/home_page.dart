@@ -66,7 +66,6 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder:
               (context) => CaffeineHistoryPage(
-                recommendationData: historyData,
                 userId: widget.userId,
                 selectedDate: _selectedDate,
               ),

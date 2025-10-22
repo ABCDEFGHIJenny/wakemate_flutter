@@ -1,115 +1,173 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'home_page.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'CaffeineRecommendationPage.dart'; // 確認路徑正確
 
-class CaffeineHistoryPage extends StatelessWidget {
-  final List<dynamic> recommendationData;
+class CaffeineHistoryPage extends StatefulWidget {
   final String userId;
-  final DateTime selectedDate;
+  final DateTime selectedDate; // 由首頁傳入的選定日期
 
   const CaffeineHistoryPage({
     super.key,
-    this.recommendationData = const [],
     required this.userId,
     required this.selectedDate,
   });
 
-  // 定義顏色和樣式
+  @override
+  State<CaffeineHistoryPage> createState() => _CaffeineHistoryPageState();
+}
+
+class _CaffeineHistoryPageState extends State<CaffeineHistoryPage> {
   final Color _primaryColor = const Color(0xFF1F3D5B); // 深藍色
   final Color _accentColor = const Color(0xFF5E91B3); // 淺藍色
   final Color _backgroundColor = const Color(0xFFF0F2F5); // 淺灰色背景
   final Color _cardColor = Colors.white; // 卡片白色背景
   final Color _textColor = const Color(0xFF424242); // 深灰色文字
 
-  // --- 數據過濾邏輯 (保留) ---
+  List<dynamic> _allData = [];
+  bool _loading = true;
 
-  /// 將 UTC 時間字串解析為本地 DateTime
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  // --- 載入所有歷史數據 ---
+  Future<void> _loadData() async {
+    if (mounted) setState(() => _loading = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    final dataStr = prefs.getString('caffeine_recommendations') ?? '[]';
+
+    try {
+      final List<dynamic> data =
+          dataStr.isNotEmpty ? List<dynamic>.from(jsonDecode(dataStr)) : [];
+
+      if (mounted) {
+        setState(() {
+          _allData = data;
+          _loading = false;
+        });
+      }
+
+      print('=== All Caffeine Data Loaded ===');
+      print(_allData);
+    } catch (e) {
+      print('Error decoding JSON data: $e');
+      if (mounted) {
+        setState(() {
+          _allData = [];
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  // --- 清除當日資料 ---
+  Future<void> _clearDataForSelectedDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dataStr = prefs.getString('caffeine_recommendations') ?? '[]';
+    List<dynamic> data = dataStr.isNotEmpty ? jsonDecode(dataStr) : [];
+
+    final String selectedDateStr = DateFormat(
+      'yyyy-MM-dd',
+    ).format(widget.selectedDate);
+
+    data =
+        data.where((item) {
+          final String timingStr =
+              item['recommended_caffeine_intake_timing'] ?? '';
+          if (timingStr.isEmpty) return true;
+          final DateTime? localDateTime = _parseAndLocalize(timingStr);
+          if (localDateTime == null) return true;
+          final String itemDateStr = DateFormat(
+            'yyyy-MM-dd',
+          ).format(localDateTime);
+          return itemDateStr != selectedDateStr;
+        }).toList();
+
+    await prefs.setString('caffeine_recommendations', jsonEncode(data));
+
+    setState(() {
+      _allData = data;
+    });
+
+    print('✅ 已清除 $selectedDateStr 的舊紀錄');
+  }
+
+  // --- 時間解析 ---
   DateTime? _parseAndLocalize(String? datetimeStr) {
     if (datetimeStr == null || datetimeStr.isEmpty) return null;
     try {
       return DateTime.parse(datetimeStr).toLocal();
     } catch (e) {
+      print('Time parsing failed for "$datetimeStr". Error: $e');
       return null;
     }
   }
 
-  /// 檢查時間是否在選定日期內 (本地時間)
-  bool _isDateInRange(DateTime dateTime, DateTime dateStart, DateTime dateEnd) {
-    return dateTime.isAfter(
-          dateStart.subtract(const Duration(milliseconds: 1)),
-        ) &&
-        dateTime.isBefore(dateEnd);
+  // --- 篩選當日資料 ---
+  List<dynamic> _filterSelectedDateData() {
+    if (_allData.isEmpty) return [];
+
+    final String selectedDateStr = DateFormat(
+      'yyyy-MM-dd',
+    ).format(widget.selectedDate);
+
+    final filtered =
+        _allData.where((item) {
+          final String timingStr =
+              item['recommended_caffeine_intake_timing'] ?? '';
+          if (timingStr.isEmpty) return false;
+
+          final DateTime? localDateTime = _parseAndLocalize(timingStr);
+          if (localDateTime == null) return false;
+
+          final String itemDateStr = DateFormat(
+            'yyyy-MM-dd',
+          ).format(localDateTime);
+          return itemDateStr == selectedDateStr;
+        }).toList();
+
+    print('=== Filtered Data for $selectedDateStr ===');
+    print(filtered);
+
+    return filtered;
   }
 
-  /// 過濾系統推薦數據
-  List<dynamic> _filterRecommendedData(List<dynamic> data) {
-    if (data.isEmpty) return [];
-
-    final dateStart = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-    );
-    final dateEnd = dateStart.add(const Duration(days: 1));
-
-    return data.where((item) {
-      final String recommendedTimingStr =
-          item['recommended_caffeine_intake_timing'] ?? '';
-      final localDateTime = _parseAndLocalize(recommendedTimingStr);
-
-      if (localDateTime == null) return false;
-      return _isDateInRange(localDateTime, dateStart, dateEnd);
-    }).toList();
-  }
-
-  /// 顯示單一數據行 (圖示 + 標題 + 內容)
+  // --- UI 輔助函式 ---
   Widget _buildDataRow({
     required IconData icon,
     required String title,
     required String content,
-    required Color iconColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 20),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 90, // 固定寬度對齊標題
-            child: Text(
-              "$title:",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: _textColor.withOpacity(0.8),
-              ),
-            ),
+    return Row(
+      children: [
+        Icon(icon, color: _accentColor, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            "$title：$content",
+            style: TextStyle(fontSize: 16, color: _textColor),
           ),
-          Expanded(
-            child: Text(
-              content,
-              style: TextStyle(fontSize: 14, color: _textColor),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedDateHistory = _filterRecommendedData(recommendationData);
-    bool hasHistory = selectedDateHistory.isNotEmpty;
-
-    final String formattedDate = DateFormat('yyyy/MM/dd').format(selectedDate);
+    final historyForSelectedDate = _filterSelectedDateData();
+    final hasHistory = historyForSelectedDate.isNotEmpty;
+    final formattedDate = DateFormat('yyyy/MM/dd').format(widget.selectedDate);
 
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
         title: Text(
-          "$formattedDate 推薦結果",
+          "$formattedDate 建議結果",
           style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -117,36 +175,28 @@ class CaffeineHistoryPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: _primaryColor),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body:
-          hasHistory
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : hasHistory
               ? ListView.builder(
-                padding: const EdgeInsets.all(20.0),
-                itemCount: selectedDateHistory.length,
+                padding: const EdgeInsets.all(16.0),
+                itemCount: historyForSelectedDate.length,
                 itemBuilder: (context, index) {
-                  final item = selectedDateHistory[index];
-
-                  final String recommendedTimingStr =
+                  final item = historyForSelectedDate[index];
+                  final recommendedTimingStr =
                       item['recommended_caffeine_intake_timing'] ?? 'N/A';
                   final recommendedAmount =
                       item['recommended_caffeine_amount'] ?? 'N/A';
 
-                  String formattedTime;
-                  try {
-                    final localDateTime = _parseAndLocalize(
-                      recommendedTimingStr,
-                    );
-                    formattedTime =
-                        localDateTime != null
-                            ? DateFormat('MM/dd HH:mm').format(localDateTime)
-                            : '格式錯誤';
-                  } catch (e) {
-                    formattedTime = '格式錯誤';
-                  }
+                  final localDateTime = _parseAndLocalize(recommendedTimingStr);
+                  final formattedTime =
+                      localDateTime != null
+                          ? DateFormat('HH:mm').format(localDateTime)
+                          : '格式錯誤';
 
                   return Card(
                     color: _cardColor,
@@ -161,25 +211,24 @@ class CaffeineHistoryPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "咖啡因攝取建議",
+                            "咖啡因建議 #${index + 1}",
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: _primaryColor,
                             ),
                           ),
-                          const Divider(height: 20),
+                          const SizedBox(height: 12),
                           _buildDataRow(
                             icon: Icons.access_time_filled,
-                            title: "建議時間",
+                            title: "建議攝取時間",
                             content: formattedTime,
-                            iconColor: _accentColor,
                           ),
+                          const SizedBox(height: 12),
                           _buildDataRow(
                             icon: Icons.local_cafe,
-                            title: "建議攝取",
+                            title: "建議攝取量",
                             content: "$recommendedAmount 毫克",
-                            iconColor: _accentColor,
                           ),
                         ],
                       ),
@@ -200,7 +249,7 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        "$formattedDate 尚無建議結果",
+                        "$formattedDate 無建議紀錄",
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -210,12 +259,49 @@ class CaffeineHistoryPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "請返回並點擊「計算推薦」按鈕以生成新的建議。",
+                        "點擊下方按鈕可計算此日期的咖啡因建議。",
                         style: TextStyle(
                           fontSize: 16,
                           color: _textColor.withOpacity(0.5),
                         ),
                         textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await _clearDataForSelectedDate(); // ✅ 先清資料
+                          if (mounted) {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => CaffeineRecommendationPage(
+                                      userId: widget.userId,
+                                      selectedDate: widget.selectedDate,
+                                    ),
+                              ),
+                            );
+                            if (result == true || result == null) {
+                              // ✅ 回來後重新載入資料並刷新
+                              await _loadData();
+                              if (mounted) setState(() {});
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.auto_graph),
+                        label: const Text("重新計算並生成最新建議"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 5,
+                        ),
                       ),
                     ],
                   ),

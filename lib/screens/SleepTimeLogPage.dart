@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 雖然未使用 SharedPreferences 暫存，但保留 import
+// ✅ 修正 #1：導入 SharedPreferences (移除註解)
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ActualSleepTimePage extends StatefulWidget {
   final String userId;
@@ -25,8 +26,10 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
 
   final String baseUrl = 'https://wakemate-api-4-0.onrender.com';
 
-  // 顏色變數
-  final Color _primaryColor = const Color(0xFF1F3D5B);
+  // 🎨 顏色變數 (套用 HomePage 的風格)
+  final Color _primaryColor = const Color(0xFF4B6B7A); // 深灰藍
+  final Color _accentColor = const Color(0xFF8BB9A1); // 柔綠藍
+  final Color _bgLight = const Color(0xFFF9F9F7); // 米白
 
   @override
   void initState() {
@@ -56,6 +59,7 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
   }
 
   void _showSnackBar(String message, {Color color = Colors.red}) {
+    // (您的 SnackBar 程式碼保持不變)
     final snackBar = SnackBar(
       content: Text(
         message,
@@ -71,6 +75,7 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
 
   /// 彈出日期+時間選擇器
   Future<void> _pickDateTime(TextEditingController controller) async {
+    // (您的 _pickDateTime 程式碼保持不變)
     DateTime initialDateTime;
     try {
       initialDateTime = DateFormat('yyyy-MM-dd HH:mm').parse(controller.text);
@@ -105,6 +110,7 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
 
   /// 將 yyyy-MM-dd HH:mm 轉成 ISO8601
   String formatToISO8601(String time) {
+    // (您的 formatToISO8601 程式碼保持不變)
     try {
       // 假設使用者輸入的是當地時間，我們將其轉為 UTC 提交給 API
       final dt = DateFormat('yyyy-MM-dd HH:mm').parse(time, true);
@@ -125,11 +131,16 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
     }
 
     // 驗證時間順序
+    late DateTime dtStart, dtEnd;
     try {
-      final dtStart = DateFormat('yyyy-MM-dd HH:mm').parse(sleepStartTimeText);
-      final dtEnd = DateFormat('yyyy-MM-dd HH:mm').parse(sleepEndTimeText);
+      dtStart = DateFormat('yyyy-MM-dd HH:mm').parse(sleepStartTimeText);
+      dtEnd = DateFormat('yyyy-MM-dd HH:mm').parse(sleepEndTimeText);
       if (dtEnd.isBefore(dtStart)) {
         _showSnackBar("結束時間不能早於開始時間，請檢查日期和時間。", color: Colors.red);
+        return;
+      }
+      if (dtEnd.difference(dtStart).inDays > 2) {
+        _showSnackBar("睡眠時間過長 (超過48小時)，請確認。", color: Colors.red);
         return;
       }
     } catch (e) {
@@ -149,57 +160,78 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
         headers: headers,
         body: jsonEncode({
           'user_id': uuid,
-          // 修正點：使用 API 要求的欄位名稱
-          'sleep_start_time': sleepStartTimeISO, // 開始睡覺時間
-          'sleep_end_time': sleepEndTimeISO, // 結束睡眠時間
+          'sleep_start_time': sleepStartTimeISO,
+          'sleep_end_time': sleepEndTimeISO,
         }),
       );
 
       if (sleepRes.statusCode == 200) {
-        _calculateAndShowSleepDuration(sleepStartTimeISO, sleepEndTimeISO);
+        // ✅ 修正 #2：呼叫新的成功處理函數
+        await _handleSuccessfulSave(dtStart, dtEnd);
 
         if (mounted) {
           // 提交成功後關閉頁面
           Navigator.of(context).pop();
         }
       } else {
-        // 伺服器回傳非 200 狀態碼
         String sleepBody = sleepRes.body.isNotEmpty ? sleepRes.body : "無回應內容";
         _showSnackBar("睡眠紀錄儲存失敗：${sleepRes.statusCode}\n回應：$sleepBody");
       }
     } catch (e) {
-      // 網路或解析錯誤
       _showSnackBar("發生錯誤：$e");
     }
   }
 
-  // 計算並顯示睡眠時長
-  void _calculateAndShowSleepDuration(String startISO, String endISO) {
+  // ✅ 修正 #3：新函數，取代 _calculateAndShowSleepDuration
+  // 負責計算、儲存到 SharedPreferences，並顯示 SnackBar
+  Future<void> _handleSuccessfulSave(DateTime dtStart, DateTime dtEnd) async {
     try {
-      final dtStart = DateTime.parse(startISO).toLocal();
-      final dtEnd = DateTime.parse(endISO).toLocal();
-
       final duration = dtEnd.difference(dtStart);
+
+      // 1. 計算總小時 (double)
+      final double totalHours = duration.inMinutes / 60.0;
+
+      // 2. 準備 SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+
+      // 3. 產生 Key (以"結束日期"為準，這與 HomePage 邏輯一致)
+      final String dateKey = DateFormat('yyyy-MM-dd').format(dtEnd);
+      final String prefsKey = 'sleep_$dateKey';
+
+      // 4. 儲存總時數
+      // 附註：睡眠通常是覆蓋，而不是累加
+      await prefs.setDouble(prefsKey, totalHours);
+      print('[$prefsKey] 儲存成功：$totalHours 小時'); // 除錯用
+
+      // 5. 顯示成功訊息 (原本的邏輯)
       final hours = duration.inHours;
       final minutes = duration.inMinutes % 60;
-
-      // 成功訊息
       _showSnackBar(
         "睡眠紀錄儲存成功！\n😴 總時長：${hours}小時 ${minutes}分鐘",
-        color: const Color.fromARGB(255, 59, 140, 101),
+        color: _accentColor, // ⭐️ 使用風格顏色
       );
     } catch (e) {
-      _showSnackBar("資料格式錯誤，無法計算時長。", color: Colors.orange);
+      _showSnackBar("資料格式錯誤，無法計算或儲存時長。", color: Colors.orange);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🎨 套用 HomePage 的風格
     return Scaffold(
+      backgroundColor: _bgLight, // ⭐️
       appBar: AppBar(
-        title: const Text('新增實際睡眠時間'),
-        backgroundColor: Colors.white,
-        elevation: 0,
+        title: Text(
+          '新增實際睡眠時間',
+          style: TextStyle(
+            color: _primaryColor,
+            fontWeight: FontWeight.bold,
+          ), // ⭐️
+        ),
+        backgroundColor: Colors.white.withOpacity(0.9), // ⭐️
+        elevation: 1,
+        shadowColor: Colors.black12,
+        iconTheme: IconThemeData(color: _primaryColor), // ⭐️
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -221,8 +253,11 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                prefixIcon: Icon(Icons.bedtime, color: _primaryColor),
-                hintText: '例如：2025-10-20 23:00',
+                prefixIcon: Icon(
+                  Icons.bedtime_outlined,
+                  color: _primaryColor,
+                ), // ⭐️
+                hintText: '例如：2025-11-05 23:00',
               ),
               onTap: () => _pickDateTime(sleepStartController),
             ),
@@ -239,10 +274,10 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 prefixIcon: Icon(
-                  Icons.access_time_filled,
+                  Icons.access_time_rounded, // ⭐️
                   color: _primaryColor,
                 ),
-                hintText: '例如：2025-10-21 07:00',
+                hintText: '例如：2025-11-06 07:00',
               ),
               onTap: () => _pickDateTime(sleepEndController),
             ),
@@ -254,7 +289,7 @@ class _ActualSleepTimePageState extends State<ActualSleepTimePage> {
               child: ElevatedButton.icon(
                 onPressed: _submitData,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
+                  backgroundColor: _primaryColor, // ⭐️
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(

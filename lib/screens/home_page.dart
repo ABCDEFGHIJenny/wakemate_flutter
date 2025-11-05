@@ -36,38 +36,44 @@ class _HomePageState extends State<HomePage> {
   final Color _bgLight = const Color(0xFFF9F9F7); // 米白
   final Color _cardColor = Colors.white;
 
+  double _totalCaffeine = 0; // mg
+  double _totalSleep = 0; // 小時
+
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
     _focusedDate = DateTime.now();
+    _loadDailyStats();
   }
 
-  // --- 您的所有後台邏輯 (保持不變) ---
-  Future<void> _navigateToRecommendationHistoryPage() async {
+  // --- 載入當日咖啡因與睡眠數據 ---
+  Future<void> _loadDailyStats() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? jsonData = prefs.getString('caffeine_recommendations');
-    List<dynamic> historyData = [];
-    if (jsonData != null) {
-      try {
-        historyData = json.decode(jsonData);
-      } catch (_) {}
-    }
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => CaffeineHistoryPage(
-                userId: widget.userId,
-                selectedDate: _selectedDate,
-              ),
-        ),
-      );
-    }
+    setState(() {
+      _totalCaffeine = prefs.getDouble('caffeine_$dateKey') ?? 0;
+      _totalSleep = prefs.getDouble('sleep_$dateKey') ?? 0;
+    });
   }
 
+  // --- 導航到推薦結果頁 ---
+  Future<void> _navigateToRecommendationHistoryPage() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => CaffeineHistoryPage(
+              userId: widget.userId,
+              selectedDate: _selectedDate,
+            ),
+      ),
+    );
+    _loadDailyStats(); // 返回後立即刷新 Header
+  }
+
+  // --- 導航到輸入歷史頁 ---
   void _navigateToUserInputHistoryPage() {
     Navigator.push(
       context,
@@ -78,9 +84,10 @@ class _HomePageState extends State<HomePage> {
               selectedDate: _selectedDate,
             ),
       ),
-    );
+    ).then((_) => _loadDailyStats()); // 返回後刷新 Header
   }
 
+  // --- 顯示新增紀錄選項 ---
   void _showAddOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -126,7 +133,7 @@ class _HomePageState extends State<HomePage> {
                             selectedDate: _selectedDate,
                           ),
                     ),
-                  );
+                  ).then((_) => _loadDailyStats()); // 返回後刷新
                 },
               ),
               _buildOptionTile(
@@ -143,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                             selectedDate: _selectedDate,
                           ),
                     ),
-                  );
+                  ).then((_) => _loadDailyStats()); // 返回後刷新
                 },
               ),
               _buildOptionTile(
@@ -160,7 +167,7 @@ class _HomePageState extends State<HomePage> {
                             selectedDate: _selectedDate,
                           ),
                     ),
-                  );
+                  ).then((_) => _loadDailyStats()); // 返回後刷新
                 },
               ),
             ],
@@ -189,12 +196,9 @@ class _HomePageState extends State<HomePage> {
       onTap: onTap,
     );
   }
-  // --- 邏輯結束 ---
 
   @override
   Widget build(BuildContext context) {
-    final String today = DateFormat('yyyy/MM/dd').format(DateTime.now());
-
     return Scaffold(
       backgroundColor: _bgLight,
       drawer: CustomDrawer(
@@ -226,13 +230,11 @@ class _HomePageState extends State<HomePage> {
       body: Padding(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
         child: Column(
-          // ⚠️ 修正 #1：移除了 mainAxisAlignment: MainAxisAlignment.spaceBetween
-          // 讓內容從頂部開始自然排列
           children: [
-            // Header 區：日期 + 歡迎語 (保持不變)
+            // Header：咖啡因 + 睡眠
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
@@ -247,37 +249,55 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "今日：$today",
-                    style: TextStyle(
-                      color: _primaryColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "今日咖啡因攝取量",
+                        style: TextStyle(
+                          color: _primaryColor.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${_totalCaffeine.toStringAsFixed(0)} mg",
+                        style: TextStyle(
+                          color: _primaryColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    "Hello ${widget.userName.isNotEmpty ? widget.userName : '使用者'} ☀️",
-                    style: TextStyle(
-                      color: _accentColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "今日睡眠時數",
+                        style: TextStyle(
+                          color: _primaryColor.withOpacity(0.7),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${_totalSleep.toStringAsFixed(1)} 小時",
+                        style: TextStyle(
+                          color: _accentColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            // 📌 新增：固定的間距
-            const SizedBox(height: 15),
-
-            // 日曆卡 (保持不變)
+            const SizedBox(height: 10),
+            // 日曆卡
             Flexible(
-              // 修正 #2：移除 flex: 5。
-              // 由於這是 Column 中唯一的 Flexible 元件，它會自動填滿所有剩餘空間
-              // flex: 1, (或直接移除 flex 屬性)
               child: Container(
-                // 修正 #3：移除了 margin，改用SizedBox控制
-                // margin: const EdgeInsets.only(top: 10, bottom: 10),
                 decoration: BoxDecoration(
                   color: _cardColor,
                   borderRadius: BorderRadius.circular(25),
@@ -291,7 +311,6 @@ class _HomePageState extends State<HomePage> {
                 ),
                 padding: const EdgeInsets.all(8),
                 child: TableCalendar(
-                  // --- 日曆內容保持不變 ---
                   firstDay: DateTime.utc(2000, 1, 1),
                   lastDay: DateTime.utc(2100, 12, 31),
                   focusedDay: _focusedDate,
@@ -301,6 +320,7 @@ class _HomePageState extends State<HomePage> {
                       _selectedDate = selected;
                       _focusedDate = focused;
                     });
+                    _loadDailyStats(); // 選日期時更新 Header
                   },
                   calendarStyle: CalendarStyle(
                     cellMargin: const EdgeInsets.all(2.0),
@@ -342,16 +362,11 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-
-            // 新增：固定的間距
-            const SizedBox(height: 50),
-
+            const SizedBox(height: 10),
             // 下方按鈕群組
             Column(
-              // ⚠️ 修正 #5：移除了 mainAxisAlignment: MainAxisAlignment.spaceEvenly
               children: [
                 Row(
-                  // --- 按鈕 1 (新增紀錄) ---
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
@@ -376,7 +391,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    // --- 按鈕 2 (輸入歷史) ---
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
@@ -400,13 +414,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-
-                // 📌 新增：固定的間距
                 const SizedBox(height: 12),
-
                 Row(
                   children: [
-                    // --- 按鈕 3 (計算推薦) ---
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -428,7 +438,7 @@ class _HomePageState extends State<HomePage> {
                                     selectedDate: _selectedDate,
                                   ),
                             ),
-                          );
+                          ).then((_) => _loadDailyStats());
                         },
                         icon: const Icon(Icons.auto_graph, size: 22),
                         label: const Text(
@@ -441,7 +451,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    // --- 按鈕 4 (推薦結果) ---
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(

@@ -31,7 +31,6 @@ class _HomePageState extends State<HomePage> {
   late DateTime _selectedDate;
   late DateTime _focusedDate;
 
-  // 柔和療癒色系
   final Color _primaryColor = const Color(0xFF4B6B7A); // 深灰藍
   final Color _accentColor = const Color(0xFF8BB9A1); // 柔綠藍
   final Color _bgLight = const Color(0xFFF9F9F7); // 米白
@@ -44,6 +43,7 @@ class _HomePageState extends State<HomePage> {
     _focusedDate = DateTime.now();
   }
 
+  // --- 您的所有後台邏輯 (保持不變) ---
   Future<void> _navigateToRecommendationHistoryPage() async {
     final prefs = await SharedPreferences.getInstance();
     final String? jsonData = prefs.getString('caffeine_recommendations');
@@ -189,9 +189,12 @@ class _HomePageState extends State<HomePage> {
       onTap: onTap,
     );
   }
+  // --- 邏輯結束 ---
 
   @override
   Widget build(BuildContext context) {
+    final String today = DateFormat('yyyy/MM/dd').format(DateTime.now());
+
     return Scaffold(
       backgroundColor: _bgLight,
       drawer: CustomDrawer(
@@ -220,87 +223,144 @@ class _HomePageState extends State<HomePage> {
               ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 15, 20, 40),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
         child: Column(
+          // ⚠️ 修正 #1：移除了 mainAxisAlignment: MainAxisAlignment.spaceBetween
+          // 讓內容從頂部開始自然排列
           children: [
-            // 柔和卡片日曆
+            // Header 區：日期 + 歡迎語 (保持不變)
             Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
               decoration: BoxDecoration(
-                color: _cardColor,
-                borderRadius: BorderRadius.circular(25),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(8),
-              child: TableCalendar(
-                firstDay: DateTime.utc(2000, 1, 1),
-                lastDay: DateTime.utc(2100, 12, 31),
-                focusedDay: _focusedDate,
-                selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
-                onDaySelected: (selected, focused) {
-                  setState(() {
-                    _selectedDate = selected;
-                    _focusedDate = focused;
-                  });
-                },
-                calendarStyle: CalendarStyle(
-                  selectedDecoration: BoxDecoration(
-                    color: _accentColor,
-                    shape: BoxShape.circle,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "今日：$today",
+                    style: TextStyle(
+                      color: _primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  todayDecoration: BoxDecoration(
-                    color: _accentColor.withOpacity(0.3),
-                    shape: BoxShape.circle,
+                  Text(
+                    "Hello ${widget.userName.isNotEmpty ? widget.userName : '使用者'} ☀️",
+                    style: TextStyle(
+                      color: _accentColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  defaultTextStyle: TextStyle(color: _primaryColor),
-                  weekendTextStyle: TextStyle(color: _primaryColor),
+                ],
+              ),
+            ),
+
+            // 📌 新增：固定的間距
+            const SizedBox(height: 15),
+
+            // 日曆卡 (保持不變)
+            Flexible(
+              // 修正 #2：移除 flex: 5。
+              // 由於這是 Column 中唯一的 Flexible 元件，它會自動填滿所有剩餘空間
+              // flex: 1, (或直接移除 flex 屬性)
+              child: Container(
+                // 修正 #3：移除了 margin，改用SizedBox控制
+                // margin: const EdgeInsets.only(top: 10, bottom: 10),
+                decoration: BoxDecoration(
+                  color: _cardColor,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  titleTextStyle: TextStyle(
-                    color: _primaryColor,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                padding: const EdgeInsets.all(8),
+                child: TableCalendar(
+                  // --- 日曆內容保持不變 ---
+                  firstDay: DateTime.utc(2000, 1, 1),
+                  lastDay: DateTime.utc(2100, 12, 31),
+                  focusedDay: _focusedDate,
+                  selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
+                  onDaySelected: (selected, focused) {
+                    setState(() {
+                      _selectedDate = selected;
+                      _focusedDate = focused;
+                    });
+                  },
+                  calendarStyle: CalendarStyle(
+                    cellMargin: const EdgeInsets.all(2.0),
+                    selectedDecoration: BoxDecoration(
+                      color: _accentColor,
+                      shape: BoxShape.circle,
+                    ),
+                    todayDecoration: BoxDecoration(
+                      color: _accentColor.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    defaultTextStyle: TextStyle(color: _primaryColor),
+                    weekendTextStyle: TextStyle(color: _primaryColor),
                   ),
-                  leftChevronIcon: Icon(
-                    Icons.chevron_left,
-                    color: _accentColor,
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    headerPadding: const EdgeInsets.symmetric(vertical: 15.0),
+                    titleTextStyle: TextStyle(
+                      color: _primaryColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left,
+                      color: _accentColor,
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right,
+                      color: _accentColor,
+                    ),
                   ),
-                  rightChevronIcon: Icon(
-                    Icons.chevron_right,
-                    color: _accentColor,
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: TextStyle(
+                      color: _primaryColor.withOpacity(0.8),
+                    ),
+                    weekendStyle: TextStyle(color: _accentColor),
                   ),
-                ),
-                daysOfWeekStyle: DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(
-                    color: _primaryColor.withOpacity(0.8),
-                  ),
-                  weekendStyle: TextStyle(color: _accentColor),
                 ),
               ),
             ),
-            const SizedBox(height: 25),
 
-            // 按鈕區塊
+            // 新增：固定的間距
+            const SizedBox(height: 50),
+
+            // 下方按鈕群組
             Column(
+              // ⚠️ 修正 #5：移除了 mainAxisAlignment: MainAxisAlignment.spaceEvenly
               children: [
                 Row(
+                  // --- 按鈕 1 (新增紀錄) ---
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _accentColor.withOpacity(0.9),
+                          backgroundColor: _accentColor,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 3,
                         ),
@@ -316,14 +376,15 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(width: 15),
+                    // --- 按鈕 2 (輸入歷史) ---
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _primaryColor,
                           side: BorderSide(color: _primaryColor, width: 1.8),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         onPressed: _navigateToUserInputHistoryPage,
@@ -339,19 +400,23 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+
+                // 📌 新增：固定的間距
+                const SizedBox(height: 12),
+
                 Row(
                   children: [
+                    // --- 按鈕 3 (計算推薦) ---
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryColor,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          elevation: 5,
+                          elevation: 4,
                         ),
                         onPressed: () {
                           Navigator.push(
@@ -365,7 +430,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.auto_graph, size: 24),
+                        icon: const Icon(Icons.auto_graph, size: 22),
                         label: const Text(
                           '計算推薦',
                           style: TextStyle(
@@ -376,18 +441,19 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(width: 15),
+                    // --- 按鈕 4 (推薦結果) ---
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _accentColor,
                           side: BorderSide(color: _accentColor, width: 2),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         onPressed: _navigateToRecommendationHistoryPage,
-                        icon: const Icon(Icons.history, size: 24),
+                        icon: const Icon(Icons.history, size: 22),
                         label: const Text(
                           '推薦結果',
                           style: TextStyle(

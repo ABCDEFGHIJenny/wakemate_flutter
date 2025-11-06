@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+//import 'dart:convert';
 import 'custom_drawer.dart';
 import 'CaffeineRecommendationPage.dart';
 import 'CaffeineHistory.dart';
@@ -133,7 +133,7 @@ class _HomePageState extends State<HomePage> {
                             selectedDate: _selectedDate,
                           ),
                     ),
-                  ).then((_) => _loadDailyStats()); // 返回後刷新
+                  ).then((_) => _loadDailyStats()); // 返回後刷新1
                 },
               ),
               _buildOptionTile(

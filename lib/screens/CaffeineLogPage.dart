@@ -221,19 +221,16 @@ class _CaffeineLogPageState extends State<CaffeineLogPage> {
     final Color _bgLight = const Color(0xFFF9F9F7);
 
     return Scaffold(
-      backgroundColor: _bgLight, // ⭐️
+      backgroundColor: _bgLight,
       appBar: AppBar(
         title: Text(
           '新增咖啡因紀錄',
-          style: TextStyle(
-            color: _primaryColor,
-            fontWeight: FontWeight.bold,
-          ), // ⭐️
+          style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white.withOpacity(0.9), // ⭐️
+        backgroundColor: Colors.white.withOpacity(0.9), //
         elevation: 1,
         shadowColor: Colors.black12,
-        iconTheme: IconThemeData(color: _primaryColor), // ⭐️
+        iconTheme: IconThemeData(color: _primaryColor), //
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

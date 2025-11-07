@@ -54,11 +54,18 @@ class _UserInputHistoryPageState extends State<UserInputHistoryPage> {
 
   // --- 數據獲取和過濾邏輯 ---
 
+  // ✅ 修正點：在這裡扣除 8 小時
   DateTime? _parseAndLocalize(String? datetimeStr) {
     if (datetimeStr == null || datetimeStr.isEmpty) return null;
     try {
-      return DateTime.parse(datetimeStr).toLocal();
+      // 1. 先解析 API 回傳的 UTC 時間字串
+      final parsedTime = DateTime.parse(datetimeStr);
+      // 2. 轉換為本地時間 (這一步會自動 +8 小時)
+      final localTime = parsedTime.toLocal();
+      // 3. 根據您的要求，手動減去 8 小時來修正
+      return localTime.subtract(const Duration(hours: 8));
     } catch (e) {
+      print('Error parsing or adjusting time: $e');
       return null;
     }
   }

@@ -78,6 +78,22 @@ class _CaffeineRecommendationPageState extends State<CaffeineRecommendationPage>
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
+  // ✅ 修正 #1：加入與 UserInputHistoryPage 相同的時間解析函數
+  DateTime? _parseAndLocalize(String? datetimeStr) {
+    if (datetimeStr == null || datetimeStr.isEmpty) return null;
+    try {
+      // 1. 先解析 API 回傳的 UTC 時間字串
+      final parsedTime = DateTime.parse(datetimeStr);
+      // 2. 轉換為本地時間 (這一步會自動 +8 小時)
+      final localTime = parsedTime.toLocal();
+      // 3. 根據您的要求，手動減去 8 小時來修正
+      return localTime.subtract(const Duration(hours: 8));
+    } catch (e) {
+      print('Error parsing or adjusting time: $e');
+      return null;
+    }
+  }
+
   Future<void> _saveRecommendationData(dynamic newData) async {
     final prefs = await SharedPreferences.getInstance();
     final dataStr = prefs.getString('caffeine_recommendations') ?? '[]';
@@ -100,7 +116,10 @@ class _CaffeineRecommendationPageState extends State<CaffeineRecommendationPage>
           final String timingStr =
               item['recommended_caffeine_intake_timing'] ?? '';
           if (timingStr.isEmpty) return true;
-          final DateTime? parsed = DateTime.tryParse(timingStr)?.toLocal();
+
+          // ✅ 修正 #2：使用我們修正後的時間解析函數
+          final DateTime? parsed = _parseAndLocalize(timingStr);
+
           if (parsed == null) return true;
           final String itemDateStr = DateFormat('yyyy-MM-dd').format(parsed);
           return itemDateStr != targetDateStr;
